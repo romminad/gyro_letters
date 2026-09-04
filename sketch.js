@@ -2,7 +2,6 @@ let Engine = Matter.Engine;
 let World = Matter.World;
 let Bodies = Matter.Bodies;
 let Body = Matter.Body;
-let Composite = Matter.Composite;
 
 let engine;
 let world;
@@ -19,6 +18,7 @@ let neutralBeta = 0;
 
 let motionEnabled = false;
 let hasOrientationData = false;
+let sensorStarted = false;
 
 let motionButton;
 let calibrateButton;
@@ -29,18 +29,36 @@ let resetButton;
 const BG_COLOR = "#ff1a0d";
 const FG_COLOR = "#000000";
 
-// If top / bottom motion feels reversed on your phone,
-// switch this true/false.
-const INVERT_Y = true;
+// 15% bigger
+const SIZE_MULTIPLIER = 1.15;
+
+// stronger screen boundaries
+const WALL_THICKNESS = 140;
+
+// keeps circles away from phone edges / safari bar
+const SAFE_BOUNDS_MOBILE = {
+  left: 22,
+  right: 22,
+  top: 22,
+  bottom: 130
+};
+
+const SAFE_BOUNDS_DESKTOP = {
+  left: 18,
+  right: 18,
+  top: 18,
+  bottom: 18
+};
+
 
 // ----------------------------------------------------
 // PRELOAD
 // ----------------------------------------------------
 
 function preload() {
-  fontMain = loadFont("QuasarRoundedUnlicensedTrialVersion-80.otf");
-  // If you prefer the other file, change to:
-  // loadFont("QuasarRoundedUnlicensedTrialVersion-100.otf");
+  fontMain = loadFont("QuasarRoundedUnlicensedTrialVersion-120.otf");
+  // If you prefer the other font file, use:
+  // fontMain = loadFont("QuasarRoundedUnlicensedTrialVersion-100.otf");
 }
 
 
@@ -58,7 +76,6 @@ function setup() {
   engine = Engine.create();
   world = engine.world;
 
-  // Matter gravity uses x/y direction + scale
   world.gravity.scale = 0.0014;
   world.gravity.x = 0;
   world.gravity.y = 0;
@@ -77,7 +94,7 @@ function setup() {
 function createUI() {
   motionButton = createButton("ENABLE PHONE MOTION");
   motionButton.position(18, 20);
-  motionButton.mousePressed(enableMotion);
+  motionButton.mousePressed(toggleMotion);
   styleButton(motionButton);
 
   calibrateButton = createButton("CALIBRATE");
@@ -138,7 +155,7 @@ function rebuildDiscs(rawText) {
     chars = ["A"];
   }
 
-  let radius = getDiscRadius(chars.length);
+  let radius = getDiscRadius(chars.length) * SIZE_MULTIPLIER;
   let spacing = radius * 1.72;
 
   let cols = ceil(sqrt(chars.length));
@@ -155,11 +172,11 @@ function rebuildDiscs(rawText) {
     let y = startY + row * spacing + random(-8, 8);
 
     let body = Bodies.circle(x, y, radius, {
-      restitution: 0.15,
-      friction: 0.03,
-      frictionStatic: 0.2,
-      frictionAir: 0.03,
-      density: 0.0012
+      restitution: 0.10,
+      friction: 0.05,
+      frictionStatic: 0.35,
+      frictionAir: 0.035,
+      density: 0.0014
     });
 
     World.add(world, body);
@@ -212,7 +229,6 @@ function drawDiscs() {
     let diameter = d.radius * 2;
     let outlineW = max(4, d.radius * 0.07);
 
-    // disc
     push();
     translate(x, y);
     rotate(a);
@@ -244,18 +260,59 @@ function drawDiscs() {
 
 
 // ----------------------------------------------------
-// WALLS
+// WALLS / SCREEN LIMITS
 // ----------------------------------------------------
 
 function createWalls() {
   clearWalls();
 
-  let t = 120;
+  let t = WALL_THICKNESS;
+  let safe = getSafeBounds();
 
-  walls.push(Bodies.rectangle(width * 0.5, -t * 0.5, width + t * 2, t, { isStatic: true }));
-  walls.push(Bodies.rectangle(width * 0.5, height + t * 0.5, width + t * 2, t, { isStatic: true }));
-  walls.push(Bodies.rectangle(-t * 0.5, height * 0.5, t, height + t * 2, { isStatic: true }));
-  walls.push(Bodies.rectangle(width + t * 0.5, height * 0.5, t, height + t * 2, { isStatic: true }));
+  let left = safe.left;
+  let right = width - safe.right;
+  let top = safe.top;
+  let bottom = height - safe.bottom;
+
+  walls.push(
+    Bodies.rectangle(
+      (left + right) * 0.5,
+      top - t * 0.5,
+      (right - left) + t * 2,
+      t,
+      { isStatic: true }
+    )
+  );
+
+  walls.push(
+    Bodies.rectangle(
+      (left + right) * 0.5,
+      bottom + t * 0.5,
+      (right - left) + t * 2,
+      t,
+      { isStatic: true }
+    )
+  );
+
+  walls.push(
+    Bodies.rectangle(
+      left - t * 0.5,
+      (top + bottom) * 0.5,
+      t,
+      (bottom - top) + t * 2,
+      { isStatic: true }
+    )
+  );
+
+  walls.push(
+    Bodies.rectangle(
+      right + t * 0.5,
+      (top + bottom) * 0.5,
+      t,
+      (bottom - top) + t * 2,
+      { isStatic: true }
+    )
+  );
 
   World.add(world, walls);
 }
@@ -265,6 +322,13 @@ function clearWalls() {
     World.remove(world, w);
   }
   walls = [];
+}
+
+function getSafeBounds() {
+  if (isTouchDevice()) {
+    return SAFE_BOUNDS_MOBILE;
+  }
+  return SAFE_BOUNDS_DESKTOP;
 }
 
 
@@ -281,20 +345,25 @@ function updateGravity() {
     let diffBeta = rawBeta - neutralBeta;
 
     gx = constrain(diffGamma / 22, -1, 1);
-    gy = constrain(diffBeta / 22, -1, 1);
 
-    if (INVERT_Y) gy *= -1;
-  } else {
+    // FIXED vertical direction:
+    // tilt down -> fall down
+    // tilt up -> fall up
+    gy = constrain(diffBeta / 22, -1, 1);
+  } else if (!isTouchDevice()) {
     // desktop mouse fallback
     let nx = (mouseX - width * 0.5) / (width * 0.5);
     let ny = (mouseY - height * 0.5) / (height * 0.5);
 
     gx = constrain(nx, -1, 1);
     gy = constrain(ny, -1, 1);
+  } else {
+    gx = 0;
+    gy = 0;
   }
 
-  world.gravity.x = lerp(world.gravity.x, gx, 0.12);
-  world.gravity.y = lerp(world.gravity.y, gy, 0.12);
+  world.gravity.x = lerp(world.gravity.x, gx, 0.14);
+  world.gravity.y = lerp(world.gravity.y, gy, 0.14);
 }
 
 
@@ -319,10 +388,7 @@ function calibrateMotion() {
   world.gravity.x = 0;
   world.gravity.y = 0;
 
-  for (let d of discs) {
-    Body.setVelocity(d.body, { x: 0, y: 0 });
-    Body.setAngularVelocity(d.body, 0);
-  }
+  freezeDiscs();
 
   calibrateButton.html("CALIBRATED");
 
@@ -331,34 +397,78 @@ function calibrateMotion() {
   }, 800);
 }
 
-async function enableMotion() {
+
+// ----------------------------------------------------
+// TOGGLE PHONE MOTION
+// same button ON / OFF
+// ----------------------------------------------------
+
+async function toggleMotion() {
+  // if already on -> turn off
+  if (motionEnabled) {
+    motionEnabled = false;
+    motionButton.html("ENABLE PHONE MOTION");
+
+    world.gravity.x = 0;
+    world.gravity.y = 0;
+
+    freezeDiscs();
+    return;
+  }
+
+  // turn on
   try {
-    if (
-      typeof DeviceOrientationEvent !== "undefined" &&
-      typeof DeviceOrientationEvent.requestPermission === "function"
-    ) {
-      let permission = await DeviceOrientationEvent.requestPermission();
+    if (!sensorStarted) {
+      if (
+        typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function"
+      ) {
+        let permission = await DeviceOrientationEvent.requestPermission();
 
-      if (permission !== "granted") {
-        motionButton.html("MOTION DENIED");
-        return;
+        if (permission !== "granted") {
+          motionButton.html("MOTION DENIED");
+          return;
+        }
       }
-    }
 
-    window.addEventListener("deviceorientation", handleOrientation);
+      window.addEventListener("deviceorientation", handleOrientation);
+      sensorStarted = true;
+    }
 
     motionEnabled = true;
     motionButton.html("PHONE MOTION ON");
     calibrateButton.show();
 
     setTimeout(() => {
-      if (hasOrientationData) calibrateMotion();
-    }, 500);
+      if (hasOrientationData) {
+        calibrateMotion();
+      }
+    }, 400);
 
   } catch (error) {
     console.error(error);
     motionButton.html("MOTION ERROR");
   }
+}
+
+function freezeDiscs() {
+  for (let d of discs) {
+    Body.setVelocity(d.body, { x: 0, y: 0 });
+    Body.setAngularVelocity(d.body, 0);
+  }
+}
+
+
+// ----------------------------------------------------
+// HELPERS
+// ----------------------------------------------------
+
+function isTouchDevice() {
+  return (
+    "ontouchstart" in window ||
+    navigator.maxTouchPoints > 0 ||
+    navigator.msMaxTouchPoints > 0
+  );
 }
 
 
