@@ -11,8 +11,13 @@ let discs = [];
 
 let fontMain;
 
+// ----------------------------------------------------
+// PHONE MOTION
+// ----------------------------------------------------
+
 let rawGamma = 0;
 let rawBeta = 0;
+
 let neutralGamma = 0;
 let neutralBeta = 0;
 
@@ -20,34 +25,60 @@ let motionEnabled = false;
 let hasOrientationData = false;
 let sensorStarted = false;
 
+
+// ----------------------------------------------------
+// UI
+// ----------------------------------------------------
+
+let canvas;
+
 let motionButton;
 let calibrateButton;
 let inputField;
 let updateButton;
 let resetButton;
 
+let uiHint;
+
+let uiVisible = true;
+let uiElements = [];
+
+
+// ----------------------------------------------------
+// COLOURS
+// ----------------------------------------------------
+
 const BG_COLOR = "#ff1a0d";
 const FG_COLOR = "#000000";
+
 
 // ----------------------------------------------------
 // DISC SETTINGS
 // ----------------------------------------------------
 
-// circles are 15% bigger
+// overall circle size
 const SIZE_MULTIPLIER = 1.15;
 
-// vertical optical adjustment for letters
-// negative = move letter up
-// positive = move letter down
+// letter vertical position
+// negative = higher
+// positive = lower
 const LETTER_Y_OFFSET = 0.001;
 
-// physics wall thickness
+// letter size INSIDE circle
+const LETTER_SIZE_MULTIPLIER = 1.55;
+
+
+// ----------------------------------------------------
+// PHYSICS
+// ----------------------------------------------------
+
 const WALL_THICKNESS = 140;
 
 
 // ----------------------------------------------------
 // SCREEN LIMITS
-// Adjust these if you want to fine-tune phone edges
+//
+// Increase a number to push that boundary inward.
 // ----------------------------------------------------
 
 const SAFE_BOUNDS_MOBILE = {
@@ -71,7 +102,7 @@ const SAFE_BOUNDS_DESKTOP = {
 
 function preload() {
 
-  // Typeface used INSIDE the circles
+  // Typeface used inside circles
   fontMain = loadFont(
     "QuasarRoundedUnlicensedTrialVersion-120.otf"
   );
@@ -84,7 +115,7 @@ function preload() {
 
 function setup() {
 
-  createCanvas(
+  canvas = createCanvas(
     windowWidth,
     windowHeight
   );
@@ -98,13 +129,14 @@ function setup() {
 
 
   // --------------------------------------------------
-  // MATTER.JS
+  // MATTER
   // --------------------------------------------------
 
   engine = Engine.create();
   world = engine.world;
 
   world.gravity.scale = 0.0014;
+
   world.gravity.x = 0;
   world.gravity.y = 0;
 
@@ -113,8 +145,10 @@ function setup() {
 
   createUI();
 
+  setupUIToggle();
 
-  // Initial letters
+
+  // Initial example
   rebuildDiscs("TS2A8");
 }
 
@@ -125,21 +159,20 @@ function setup() {
 
 function createUI() {
 
-  // Load UI font + CSS
   installUIStyles();
 
 
   // --------------------------------------------------
-  // PHONE MOTION BUTTON
+  // PHONE MOTION
   // --------------------------------------------------
 
   motionButton = createButton(
-    "Enable Phone Motion"
+    "Phone Motion Off"
   );
 
   motionButton.position(
-    27,
-    29
+    25,
+    24
   );
 
   motionButton.mousePressed(
@@ -160,8 +193,8 @@ function createUI() {
   );
 
   calibrateButton.position(
-    27,
-    80
+    25,
+    68
   );
 
   calibrateButton.mousePressed(
@@ -174,14 +207,14 @@ function createUI() {
 
 
   // --------------------------------------------------
-  // TEXT INPUT
+  // INPUT
   // --------------------------------------------------
 
   inputField = createInput("");
 
   inputField.position(
-    27,
-    131
+    25,
+    112
   );
 
   inputField.attribute(
@@ -191,7 +224,7 @@ function createUI() {
 
   inputField.attribute(
     "placeholder",
-    "Insert text (max.15)"
+    "Insert text"
   );
 
   inputField.addClass(
@@ -208,15 +241,17 @@ function createUI() {
   );
 
   updateButton.position(
-    27,
-    183
+    25,
+    156
   );
 
   updateButton.mousePressed(
     () => {
+
       rebuildDiscs(
         inputField.value()
       );
+
     }
   );
 
@@ -227,6 +262,8 @@ function createUI() {
 
   // --------------------------------------------------
   // RESET
+  //
+  // Clears input AND removes all circles.
   // --------------------------------------------------
 
   resetButton = createButton(
@@ -234,107 +271,158 @@ function createUI() {
   );
 
   resetButton.position(
-    149,
-    183
+    132,
+    156
   );
 
   resetButton.mousePressed(
     () => {
 
-      // reset physics using current text
-      rebuildDiscs(
-        inputField.value()
-      );
+      inputField.value("");
+
+      clearDiscs();
+
+      world.gravity.x = 0;
+      world.gravity.y = 0;
+
     }
   );
 
   resetButton.addClass(
     "ui-button"
   );
+
+
+  // --------------------------------------------------
+  // DOUBLE TAP MESSAGE
+  // --------------------------------------------------
+
+  uiHint = createDiv(
+    "Double Tap UI on/off"
+  );
+
+  uiHint.addClass(
+    "ui-hint"
+  );
+
+
+  // --------------------------------------------------
+  // STORE UI ELEMENTS
+  // --------------------------------------------------
+
+  uiElements = [
+    motionButton,
+    calibrateButton,
+    inputField,
+    updateButton,
+    resetButton,
+    uiHint
+  ];
 }
 
 
 // ----------------------------------------------------
-// UI CSS
+// UI STYLE
 // ----------------------------------------------------
 
 function installUIStyles() {
 
   let style =
-    document.createElement("style");
+    document.createElement(
+      "style"
+    );
 
 
   style.innerHTML = `
 
-    /* -----------------------------------------
-       UI TYPEFACE
-    ----------------------------------------- */
-
     @font-face {
-      font-family: "G2TGRMono";
+
+      font-family:
+        "G2TGRMono";
 
       src:
         url("9_G2TGR-Mono-TRIAL.ttf")
         format("truetype");
 
-      font-weight: normal;
-      font-style: normal;
+      font-weight:
+        normal;
+
+      font-style:
+        normal;
+
     }
 
 
-    /* -----------------------------------------
-       SHARED
-    ----------------------------------------- */
-
     .ui-button,
-    .ui-input {
+    .ui-input,
+    .ui-hint {
 
       font-family:
         "G2TGRMono",
         monospace;
 
-      font-size: 22px;
-      font-weight: normal;
+      font-weight:
+        normal;
 
-      line-height: 1;
+      box-sizing:
+        border-box;
 
-      box-sizing: border-box;
-
-      border: none;
-      border-radius: 0;
-
-      -webkit-appearance: none;
-      appearance: none;
     }
 
 
     /* -----------------------------------------
-       BUTTON
+       BUTTONS
     ----------------------------------------- */
 
     .ui-button {
 
-      height: 43px;
+      background:
+        #000000;
+
+      color:
+        #ffffff;
+
+      border:
+        0;
+
+      border-radius:
+        0;
+
+      height:
+        36px;
 
       padding:
-        10px
-        17px
-        10px
-        17px;
+        8px 11px;
 
-      background: #000000;
-      color: #ffffff;
+      font-size:
+        19px;
 
-      cursor: pointer;
+      line-height:
+        1;
 
-      white-space: nowrap;
+      cursor:
+        pointer;
+
+      white-space:
+        nowrap;
+
+      -webkit-appearance:
+        none;
+
+      appearance:
+        none;
+
     }
 
 
     .ui-button:active {
 
-      background: #ffffff;
-      color: #000000;
+      background:
+        #ffffff;
+
+      color:
+        #000000;
+
     }
 
 
@@ -344,40 +432,83 @@ function installUIStyles() {
 
     .ui-input {
 
-      width: 326px;
-      height: 45px;
+      width:
+        198px;
+
+      height:
+        38px;
 
       padding:
-        8px
-        14px;
+        7px 11px;
 
-      background: #ffffff;
-      color: #000000;
+      border:
+        0;
 
-      outline: none;
+      border-radius:
+        0;
 
-      text-transform: uppercase;
+      outline:
+        0;
+
+      background:
+        #ffffff;
+
+      color:
+        #000000;
+
+      font-size:
+        19px;
+
+      -webkit-appearance:
+        none;
+
+      appearance:
+        none;
+
+      text-transform:
+        uppercase;
+
     }
 
 
     .ui-input::placeholder {
 
-      color: #000000;
+      color:
+        #000000;
 
-      opacity: 1;
+      opacity:
+        1;
 
-      text-transform: none;
+      text-transform:
+        none;
+
     }
 
 
     /* -----------------------------------------
-       REMOVE IOS INPUT STYLING
+       UI HINT
     ----------------------------------------- */
 
-    input {
+    .ui-hint {
 
-      -webkit-border-radius: 0;
-      border-radius: 0;
+      position:
+        fixed;
+
+      right:
+        18px;
+
+      top:
+        24px;
+
+      color:
+        #000000;
+
+      font-size:
+        13px;
+
+      pointer-events:
+        none;
+
     }
 
 
@@ -387,27 +518,45 @@ function installUIStyles() {
 
     @media (max-width: 600px) {
 
-      .ui-button,
-      .ui-input {
-
-        font-size: 17px;
-      }
-
-
       .ui-button {
 
-        height: 38px;
+        font-size:
+          17px;
+
+        height:
+          34px;
 
         padding:
-          9px
-          13px;
+          7px 10px;
+
       }
 
 
       .ui-input {
 
-        width: 275px;
-        height: 40px;
+        width:
+          196px;
+
+        height:
+          36px;
+
+        font-size:
+          17px;
+
+      }
+
+
+      .ui-hint {
+
+        right:
+          12px;
+
+        top:
+          20px;
+
+        font-size:
+          11px;
+
       }
 
     }
@@ -418,6 +567,105 @@ function installUIStyles() {
   document.head.appendChild(
     style
   );
+}
+
+
+// ----------------------------------------------------
+// DOUBLE TAP UI
+// ----------------------------------------------------
+
+function setupUIToggle() {
+
+  let lastTap = 0;
+
+
+  // --------------------------------------------------
+  // PHONE DOUBLE TAP
+  // --------------------------------------------------
+
+  canvas.elt.addEventListener(
+
+    "touchend",
+
+    function(event) {
+
+      let now =
+        Date.now();
+
+
+      let tapLength =
+        now - lastTap;
+
+
+      if (
+        tapLength < 300 &&
+        tapLength > 0
+      ) {
+
+        event.preventDefault();
+
+        toggleUI();
+
+      }
+
+
+      lastTap =
+        now;
+
+    },
+
+    {
+      passive: false
+    }
+
+  );
+
+
+  // --------------------------------------------------
+  // DESKTOP DOUBLE CLICK
+  // --------------------------------------------------
+
+  canvas.elt.addEventListener(
+
+    "dblclick",
+
+    function() {
+
+      toggleUI();
+
+    }
+
+  );
+}
+
+
+// ----------------------------------------------------
+// SHOW / HIDE UI
+// ----------------------------------------------------
+
+function toggleUI() {
+
+  uiVisible =
+    !uiVisible;
+
+
+  for (
+    let el of uiElements
+  ) {
+
+    if (uiVisible) {
+
+      el.show();
+
+    }
+
+    else {
+
+      el.hide();
+
+    }
+
+  }
 }
 
 
@@ -446,7 +694,7 @@ function draw() {
 
 
 // ----------------------------------------------------
-// BUILD DISCS
+// REBUILD DISCS
 // ----------------------------------------------------
 
 function rebuildDiscs(rawText) {
@@ -458,15 +706,23 @@ function rebuildDiscs(rawText) {
     sanitizeText(rawText);
 
 
-  if (chars.length === 0) {
+  // IMPORTANT:
+  // If text is empty, leave sketch empty.
+  // No automatic "A".
+  if (
+    chars.length === 0
+  ) {
 
-    chars = ["A"];
+    return;
   }
 
 
   let radius =
-    getDiscRadius(chars.length)
-    * SIZE_MULTIPLIER;
+    getDiscRadius(
+      chars.length
+    )
+    *
+    SIZE_MULTIPLIER;
 
 
   let spacing =
@@ -475,27 +731,38 @@ function rebuildDiscs(rawText) {
 
   let cols =
     ceil(
-      sqrt(chars.length)
+      sqrt(
+        chars.length
+      )
     );
 
 
   let rows =
     ceil(
-      chars.length / cols
+      chars.length /
+      cols
     );
 
 
   let startX =
     width * 0.5
     -
-    ((cols - 1) * spacing)
+    (
+      (cols - 1)
+      *
+      spacing
+    )
     * 0.5;
 
 
   let startY =
     height * 0.5
     -
-    ((rows - 1) * spacing)
+    (
+      (rows - 1)
+      *
+      spacing
+    )
     * 0.5;
 
 
@@ -533,25 +800,34 @@ function rebuildDiscs(rawText) {
 
     let body =
       Bodies.circle(
+
         x,
         y,
         radius,
+
         {
 
           // --------------------------------------
-          // BOUNCINESS
+          // BOUNCE
           // --------------------------------------
 
-          restitution: 0.28,
+          restitution:
+            0.28,
 
-          friction: 0.04,
+          friction:
+            0.04,
 
-          frictionStatic: 0.25,
+          frictionStatic:
+            0.25,
 
-          frictionAir: 0.025,
+          frictionAir:
+            0.025,
 
-          density: 0.0014
+          density:
+            0.0014
+
         }
+
       );
 
 
@@ -563,31 +839,30 @@ function rebuildDiscs(rawText) {
 
     discs.push({
 
-      body: body,
+      body:
+        body,
 
-      char: chars[i],
+      char:
+        chars[i],
 
-      radius: radius,
+      radius:
+        radius,
 
       outlined:
         i % 2 === 1,
 
-      // --------------------------------------
-      // LETTER SIZE
-      //
-      // Increase 1.55 if you want
-      // ONLY the letter bigger.
-      // --------------------------------------
-
       textSize:
-        radius * 1.55
+        radius
+        *
+        LETTER_SIZE_MULTIPLIER
+
     });
   }
 }
 
 
 // ----------------------------------------------------
-// CLEAR DISCS
+// CLEAR ALL DISCS
 // ----------------------------------------------------
 
 function clearDiscs() {
@@ -608,7 +883,7 @@ function clearDiscs() {
 
 
 // ----------------------------------------------------
-// TEXT CLEANUP
+// TEXT
 // ----------------------------------------------------
 
 function sanitizeText(value) {
@@ -629,13 +904,15 @@ function sanitizeText(value) {
         /[A-Z0-9]/.test(ch)
     )
 
-    // MAXIMUM 15 CHARACTERS
-    .slice(0, 15);
+    .slice(
+      0,
+      15
+    );
 }
 
 
 // ----------------------------------------------------
-// RESPONSIVE DISC SIZE
+// DISC SIZE
 // ----------------------------------------------------
 
 function getDiscRadius(count) {
@@ -647,42 +924,48 @@ function getDiscRadius(count) {
     );
 
 
-  if (count <= 4) {
+  if (
+    count <= 4
+  ) {
 
     return base * 0.12;
-
   }
 
 
-  if (count <= 6) {
+  if (
+    count <= 6
+  ) {
 
     return base * 0.108;
-
   }
 
 
-  if (count <= 8) {
+  if (
+    count <= 8
+  ) {
 
     return base * 0.098;
-
   }
 
 
-  if (count <= 10) {
+  if (
+    count <= 10
+  ) {
 
     return base * 0.088;
-
   }
 
 
-  if (count <= 12) {
+  if (
+    count <= 12
+  ) {
 
     return base * 0.080;
-
   }
 
 
   // 13–15 characters
+
   return base * 0.074;
 }
 
@@ -705,7 +988,7 @@ function drawDiscs() {
       d.body.position.y;
 
 
-    let a =
+    let angle =
       d.body.angle;
 
 
@@ -730,15 +1013,17 @@ function drawDiscs() {
 
 
     rotate(
-      a
+      angle
     );
 
 
     // ------------------------------------------------
-    // OUTLINED DISC
+    // OUTLINED
     // ------------------------------------------------
 
-    if (d.outlined) {
+    if (
+      d.outlined
+    ) {
 
       noFill();
 
@@ -749,6 +1034,7 @@ function drawDiscs() {
       strokeWeight(
         outlineW
       );
+
 
       circle(
         0,
@@ -767,7 +1053,7 @@ function drawDiscs() {
 
 
     // ------------------------------------------------
-    // FILLED DISC
+    // FILLED
     // ------------------------------------------------
 
     else {
@@ -777,6 +1063,7 @@ function drawDiscs() {
       fill(
         FG_COLOR
       );
+
 
       circle(
         0,
@@ -788,6 +1075,7 @@ function drawDiscs() {
       fill(
         BG_COLOR
       );
+
     }
 
 
@@ -812,10 +1100,15 @@ function drawDiscs() {
 
 
     text(
+
       d.char,
+
       0,
+
       d.radius
-      * LETTER_Y_OFFSET
+      *
+      LETTER_Y_OFFSET
+
     );
 
 
@@ -825,7 +1118,7 @@ function drawDiscs() {
 
 
 // ----------------------------------------------------
-// WALLS / SCREEN LIMITS
+// WALLS
 // ----------------------------------------------------
 
 function createWalls() {
@@ -862,18 +1155,25 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // TOP WALL
+  // TOP
   // --------------------------------------------------
 
   walls.push(
 
     Bodies.rectangle(
 
-      (left + right) * 0.5,
+      (
+        left + right
+      )
+      * 0.5,
 
-      top - t * 0.5,
+      top
+      -
+      t * 0.5,
 
-      (right - left)
+      (
+        right - left
+      )
       +
       t * 2,
 
@@ -881,11 +1181,14 @@ function createWalls() {
 
       {
 
-        isStatic: true,
+        isStatic:
+          true,
 
-        restitution: 0.18,
+        restitution:
+          0.18,
 
-        friction: 0.05
+        friction:
+          0.05
 
       }
 
@@ -895,18 +1198,25 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // BOTTOM WALL
+  // BOTTOM
   // --------------------------------------------------
 
   walls.push(
 
     Bodies.rectangle(
 
-      (left + right) * 0.5,
+      (
+        left + right
+      )
+      * 0.5,
 
-      bottom + t * 0.5,
+      bottom
+      +
+      t * 0.5,
 
-      (right - left)
+      (
+        right - left
+      )
       +
       t * 2,
 
@@ -914,11 +1224,14 @@ function createWalls() {
 
       {
 
-        isStatic: true,
+        isStatic:
+          true,
 
-        restitution: 0.18,
+        restitution:
+          0.18,
 
-        friction: 0.05
+        friction:
+          0.05
 
       }
 
@@ -928,30 +1241,40 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // LEFT WALL
+  // LEFT
   // --------------------------------------------------
 
   walls.push(
 
     Bodies.rectangle(
 
-      left - t * 0.5,
+      left
+      -
+      t * 0.5,
 
-      (top + bottom) * 0.5,
+      (
+        top + bottom
+      )
+      * 0.5,
 
       t,
 
-      (bottom - top)
+      (
+        bottom - top
+      )
       +
       t * 2,
 
       {
 
-        isStatic: true,
+        isStatic:
+          true,
 
-        restitution: 0.18,
+        restitution:
+          0.18,
 
-        friction: 0.05
+        friction:
+          0.05
 
       }
 
@@ -961,30 +1284,40 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // RIGHT WALL
+  // RIGHT
   // --------------------------------------------------
 
   walls.push(
 
     Bodies.rectangle(
 
-      right + t * 0.5,
+      right
+      +
+      t * 0.5,
 
-      (top + bottom) * 0.5,
+      (
+        top + bottom
+      )
+      * 0.5,
 
       t,
 
-      (bottom - top)
+      (
+        bottom - top
+      )
       +
       t * 2,
 
       {
 
-        isStatic: true,
+        isStatic:
+          true,
 
-        restitution: 0.18,
+        restitution:
+          0.18,
 
-        friction: 0.05
+        friction:
+          0.05
 
       }
 
@@ -1001,18 +1334,18 @@ function createWalls() {
 
 
 // ----------------------------------------------------
-// CLEAR WALLS
+// REMOVE WALLS
 // ----------------------------------------------------
 
 function clearWalls() {
 
   for (
-    let w of walls
+    let wall of walls
   ) {
 
     World.remove(
       world,
-      w
+      wall
     );
   }
 
@@ -1079,8 +1412,8 @@ function updateGravity() {
       );
 
 
-    // tilt down = circles fall down
-    // tilt up   = circles fall up
+    // tilt down = gravity down
+    // tilt up   = gravity up
 
     gy =
       constrain(
@@ -1093,7 +1426,7 @@ function updateGravity() {
 
 
   // --------------------------------------------------
-  // DESKTOP MOUSE FALLBACK
+  // DESKTOP MOUSE
   // --------------------------------------------------
 
   else if (
@@ -1150,12 +1483,9 @@ function updateGravity() {
 
     gx = 0;
     gy = 0;
+
   }
 
-
-  // --------------------------------------------------
-  // SMOOTH GRAVITY
-  // --------------------------------------------------
 
   world.gravity.x =
     lerp(
@@ -1175,7 +1505,7 @@ function updateGravity() {
 
 
 // ----------------------------------------------------
-// PHONE ORIENTATION
+// SENSOR DATA
 // ----------------------------------------------------
 
 function handleOrientation(event) {
@@ -1254,7 +1584,7 @@ function calibrateMotion() {
 
 
 // ----------------------------------------------------
-// TOGGLE PHONE MOTION
+// PHONE MOTION ON / OFF
 // ----------------------------------------------------
 
 async function toggleMotion() {
@@ -1267,11 +1597,12 @@ async function toggleMotion() {
     motionEnabled
   ) {
 
-    motionEnabled = false;
+    motionEnabled =
+      false;
 
 
     motionButton.html(
-      "Enable Phone Motion"
+      "Phone Motion Off"
     );
 
 
@@ -1300,7 +1631,9 @@ async function toggleMotion() {
         typeof DeviceOrientationEvent
         !==
         "undefined"
+
         &&
+
         typeof DeviceOrientationEvent.requestPermission
         ===
         "function"
@@ -1342,13 +1675,11 @@ async function toggleMotion() {
 
 
     motionButton.html(
-      "Disable Phone Motion"
+      "Phone Motion On"
     );
 
 
-    // ------------------------------------------------
-    // AUTO CALIBRATE
-    // ------------------------------------------------
+    // Auto calibrate
 
     setTimeout(
 
@@ -1359,6 +1690,7 @@ async function toggleMotion() {
         ) {
 
           calibrateMotion();
+
         }
 
       },
@@ -1370,7 +1702,9 @@ async function toggleMotion() {
   }
 
 
-  catch (error) {
+  catch (
+    error
+  ) {
 
     console.error(
       error
@@ -1380,12 +1714,13 @@ async function toggleMotion() {
     motionButton.html(
       "Motion Error"
     );
+
   }
 }
 
 
 // ----------------------------------------------------
-// FREEZE DISCS
+// FREEZE
 // ----------------------------------------------------
 
 function freezeDiscs() {
@@ -1395,11 +1730,14 @@ function freezeDiscs() {
   ) {
 
     Body.setVelocity(
+
       d.body,
+
       {
         x: 0,
         y: 0
       }
+
     );
 
 
@@ -1412,7 +1750,7 @@ function freezeDiscs() {
 
 
 // ----------------------------------------------------
-// TOUCH DEVICE
+// TOUCH DEVICE CHECK
 // ----------------------------------------------------
 
 function isTouchDevice() {
@@ -1425,12 +1763,6 @@ function isTouchDevice() {
     ||
 
     navigator.maxTouchPoints
-    >
-    0
-
-    ||
-
-    navigator.msMaxTouchPoints
     >
     0
 
