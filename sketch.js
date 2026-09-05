@@ -29,18 +29,32 @@ let resetButton;
 const BG_COLOR = "#ff1a0d";
 const FG_COLOR = "#000000";
 
-// 15% bigger
+// ----------------------------------------------------
+// DISC SETTINGS
+// ----------------------------------------------------
+
+// circles are 15% bigger
 const SIZE_MULTIPLIER = 1.15;
 
-// stronger screen boundaries
+// vertical optical adjustment for letters
+// negative = move letter up
+// positive = move letter down
+const LETTER_Y_OFFSET = 0.001;
+
+// physics wall thickness
 const WALL_THICKNESS = 140;
 
-// keeps circles away from phone edges / safari bar
+
+// ----------------------------------------------------
+// SCREEN LIMITS
+// Adjust these if you want to fine-tune phone edges
+// ----------------------------------------------------
+
 const SAFE_BOUNDS_MOBILE = {
   left: 0,
   right: 0,
   top: 0,
-  bottom: 15
+  bottom: 10
 };
 
 const SAFE_BOUNDS_DESKTOP = {
@@ -56,9 +70,11 @@ const SAFE_BOUNDS_DESKTOP = {
 // ----------------------------------------------------
 
 function preload() {
-  fontMain = loadFont("QuasarRoundedUnlicensedTrialVersion-120.otf");
-  // If you prefer the other font file, use:
-  // fontMain = loadFont("QuasarRoundedUnlicensedTrialVersion-100.otf");
+
+  // Typeface used INSIDE the circles
+  fontMain = loadFont(
+    "QuasarRoundedUnlicensedTrialVersion-120.otf"
+  );
 }
 
 
@@ -67,11 +83,23 @@ function preload() {
 // ----------------------------------------------------
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+
+  createCanvas(
+    windowWidth,
+    windowHeight
+  );
+
   pixelDensity(1);
+
   textFont(fontMain);
   textAlign(CENTER, CENTER);
+
   noStroke();
+
+
+  // --------------------------------------------------
+  // MATTER.JS
+  // --------------------------------------------------
 
   engine = Engine.create();
   world = engine.world;
@@ -80,9 +108,13 @@ function setup() {
   world.gravity.x = 0;
   world.gravity.y = 0;
 
+
   createWalls();
+
   createUI();
 
+
+  // Initial letters
   rebuildDiscs("TS2A8");
 }
 
@@ -92,39 +124,300 @@ function setup() {
 // ----------------------------------------------------
 
 function createUI() {
-  motionButton = createButton("ENABLE PHONE MOTION");
-  motionButton.position(18, 20);
-  motionButton.mousePressed(toggleMotion);
-  styleButton(motionButton);
 
-  calibrateButton = createButton("CALIBRATE");
-  calibrateButton.position(18, 58);
-  calibrateButton.mousePressed(calibrateMotion);
-  styleButton(calibrateButton);
-  calibrateButton.hide();
+  // Load UI font + CSS
+  installUIStyles();
 
-  let typeLabel = createDiv("TYPE");
-  typeLabel.position(18, 104);
-  styleLabel(typeLabel);
 
-  inputField = createInput("TS2A8");
-  inputField.position(18, 126);
-  inputField.attribute("maxlength", "10");
-  inputField.style("text-transform", "uppercase");
+  // --------------------------------------------------
+  // PHONE MOTION BUTTON
+  // --------------------------------------------------
 
-  updateButton = createButton("UPDATE");
-  updateButton.position(176, 126);
-  updateButton.mousePressed(() => {
-    rebuildDiscs(inputField.value());
-  });
-  styleButton(updateButton);
+  motionButton = createButton(
+    "Enable Phone Motion"
+  );
 
-  resetButton = createButton("RESET STACK");
-  resetButton.position(18, 164);
-  resetButton.mousePressed(() => {
-    rebuildDiscs(inputField.value());
-  });
-  styleButton(resetButton);
+  motionButton.position(
+    27,
+    29
+  );
+
+  motionButton.mousePressed(
+    toggleMotion
+  );
+
+  motionButton.addClass(
+    "ui-button"
+  );
+
+
+  // --------------------------------------------------
+  // CALIBRATE
+  // --------------------------------------------------
+
+  calibrateButton = createButton(
+    "Calibrate"
+  );
+
+  calibrateButton.position(
+    27,
+    80
+  );
+
+  calibrateButton.mousePressed(
+    calibrateMotion
+  );
+
+  calibrateButton.addClass(
+    "ui-button"
+  );
+
+
+  // --------------------------------------------------
+  // TEXT INPUT
+  // --------------------------------------------------
+
+  inputField = createInput("");
+
+  inputField.position(
+    27,
+    131
+  );
+
+  inputField.attribute(
+    "maxlength",
+    "15"
+  );
+
+  inputField.attribute(
+    "placeholder",
+    "Insert text (max.15)"
+  );
+
+  inputField.addClass(
+    "ui-input"
+  );
+
+
+  // --------------------------------------------------
+  // UPDATE
+  // --------------------------------------------------
+
+  updateButton = createButton(
+    "Update"
+  );
+
+  updateButton.position(
+    27,
+    183
+  );
+
+  updateButton.mousePressed(
+    () => {
+      rebuildDiscs(
+        inputField.value()
+      );
+    }
+  );
+
+  updateButton.addClass(
+    "ui-button"
+  );
+
+
+  // --------------------------------------------------
+  // RESET
+  // --------------------------------------------------
+
+  resetButton = createButton(
+    "Reset"
+  );
+
+  resetButton.position(
+    149,
+    183
+  );
+
+  resetButton.mousePressed(
+    () => {
+
+      // reset physics using current text
+      rebuildDiscs(
+        inputField.value()
+      );
+    }
+  );
+
+  resetButton.addClass(
+    "ui-button"
+  );
+}
+
+
+// ----------------------------------------------------
+// UI CSS
+// ----------------------------------------------------
+
+function installUIStyles() {
+
+  let style =
+    document.createElement("style");
+
+
+  style.innerHTML = `
+
+    /* -----------------------------------------
+       UI TYPEFACE
+    ----------------------------------------- */
+
+    @font-face {
+      font-family: "G2TGRMono";
+
+      src:
+        url("9_G2TGR-Mono-TRIAL.ttf")
+        format("truetype");
+
+      font-weight: normal;
+      font-style: normal;
+    }
+
+
+    /* -----------------------------------------
+       SHARED
+    ----------------------------------------- */
+
+    .ui-button,
+    .ui-input {
+
+      font-family:
+        "G2TGRMono",
+        monospace;
+
+      font-size: 22px;
+      font-weight: normal;
+
+      line-height: 1;
+
+      box-sizing: border-box;
+
+      border: none;
+      border-radius: 0;
+
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+
+    /* -----------------------------------------
+       BUTTON
+    ----------------------------------------- */
+
+    .ui-button {
+
+      height: 43px;
+
+      padding:
+        10px
+        17px
+        10px
+        17px;
+
+      background: #000000;
+      color: #ffffff;
+
+      cursor: pointer;
+
+      white-space: nowrap;
+    }
+
+
+    .ui-button:active {
+
+      background: #ffffff;
+      color: #000000;
+    }
+
+
+    /* -----------------------------------------
+       INPUT
+    ----------------------------------------- */
+
+    .ui-input {
+
+      width: 326px;
+      height: 45px;
+
+      padding:
+        8px
+        14px;
+
+      background: #ffffff;
+      color: #000000;
+
+      outline: none;
+
+      text-transform: uppercase;
+    }
+
+
+    .ui-input::placeholder {
+
+      color: #000000;
+
+      opacity: 1;
+
+      text-transform: none;
+    }
+
+
+    /* -----------------------------------------
+       REMOVE IOS INPUT STYLING
+    ----------------------------------------- */
+
+    input {
+
+      -webkit-border-radius: 0;
+      border-radius: 0;
+    }
+
+
+    /* -----------------------------------------
+       MOBILE
+    ----------------------------------------- */
+
+    @media (max-width: 600px) {
+
+      .ui-button,
+      .ui-input {
+
+        font-size: 17px;
+      }
+
+
+      .ui-button {
+
+        height: 38px;
+
+        padding:
+          9px
+          13px;
+      }
+
+
+      .ui-input {
+
+        width: 275px;
+        height: 40px;
+      }
+
+    }
+
+  `;
+
+
+  document.head.appendChild(
+    style
+  );
 }
 
 
@@ -133,10 +426,20 @@ function createUI() {
 // ----------------------------------------------------
 
 function draw() {
-  background(BG_COLOR);
+
+  background(
+    BG_COLOR
+  );
+
 
   updateGravity();
-  Engine.update(engine, 1000 / 60);
+
+
+  Engine.update(
+    engine,
+    1000 / 60
+  );
+
 
   drawDiscs();
 }
@@ -147,73 +450,240 @@ function draw() {
 // ----------------------------------------------------
 
 function rebuildDiscs(rawText) {
+
   clearDiscs();
 
-  let chars = sanitizeText(rawText);
+
+  let chars =
+    sanitizeText(rawText);
+
 
   if (chars.length === 0) {
+
     chars = ["A"];
   }
 
-  let radius = getDiscRadius(chars.length) * SIZE_MULTIPLIER;
-  let spacing = radius * 1.72;
 
-  let cols = ceil(sqrt(chars.length));
-  let rows = ceil(chars.length / cols);
+  let radius =
+    getDiscRadius(chars.length)
+    * SIZE_MULTIPLIER;
 
-  let startX = width * 0.5 - ((cols - 1) * spacing) * 0.5;
-  let startY = height * 0.5 - ((rows - 1) * spacing) * 0.5;
 
-  for (let i = 0; i < chars.length; i++) {
-    let col = i % cols;
-    let row = floor(i / cols);
+  let spacing =
+    radius * 1.72;
 
-    let x = startX + col * spacing + random(-8, 8);
-    let y = startY + row * spacing + random(-8, 8);
 
-    let body = Bodies.circle(x, y, radius, {
-      restitution: 0.28,
-      friction: 0.04,
-      frictionStatic: 0.25,
-      frictionAir: 0.025,
-      density: 0.0014
-    });
+  let cols =
+    ceil(
+      sqrt(chars.length)
+    );
 
-    World.add(world, body);
+
+  let rows =
+    ceil(
+      chars.length / cols
+    );
+
+
+  let startX =
+    width * 0.5
+    -
+    ((cols - 1) * spacing)
+    * 0.5;
+
+
+  let startY =
+    height * 0.5
+    -
+    ((rows - 1) * spacing)
+    * 0.5;
+
+
+  for (
+    let i = 0;
+    i < chars.length;
+    i++
+  ) {
+
+    let col =
+      i % cols;
+
+
+    let row =
+      floor(
+        i / cols
+      );
+
+
+    let x =
+      startX
+      +
+      col * spacing
+      +
+      random(-8, 8);
+
+
+    let y =
+      startY
+      +
+      row * spacing
+      +
+      random(-8, 8);
+
+
+    let body =
+      Bodies.circle(
+        x,
+        y,
+        radius,
+        {
+
+          // --------------------------------------
+          // BOUNCINESS
+          // --------------------------------------
+
+          restitution: 0.28,
+
+          friction: 0.04,
+
+          frictionStatic: 0.25,
+
+          frictionAir: 0.025,
+
+          density: 0.0014
+        }
+      );
+
+
+    World.add(
+      world,
+      body
+    );
+
 
     discs.push({
+
       body: body,
+
       char: chars[i],
+
       radius: radius,
-      outlined: i % 2 === 1,
-      textSize: radius * 1.02
+
+      outlined:
+        i % 2 === 1,
+
+      // --------------------------------------
+      // LETTER SIZE
+      //
+      // Increase 1.55 if you want
+      // ONLY the letter bigger.
+      // --------------------------------------
+
+      textSize:
+        radius * 1.55
     });
   }
 }
 
+
+// ----------------------------------------------------
+// CLEAR DISCS
+// ----------------------------------------------------
+
 function clearDiscs() {
-  for (let d of discs) {
-    World.remove(world, d.body);
+
+  for (
+    let d of discs
+  ) {
+
+    World.remove(
+      world,
+      d.body
+    );
   }
+
+
   discs = [];
 }
 
+
+// ----------------------------------------------------
+// TEXT CLEANUP
+// ----------------------------------------------------
+
 function sanitizeText(value) {
+
   return value
+
     .toUpperCase()
-    .replace(/\s+/g, "")
+
+    .replace(
+      /\s+/g,
+      ""
+    )
+
     .split("")
-    .filter(ch => /[A-Z0-9]/.test(ch))
-    .slice(0, 10);
+
+    .filter(
+      ch =>
+        /[A-Z0-9]/.test(ch)
+    )
+
+    // MAXIMUM 15 CHARACTERS
+    .slice(0, 15);
 }
 
-function getDiscRadius(count) {
-  let base = min(width, height);
 
-  if (count <= 4) return base * 0.12;
-  if (count <= 6) return base * 0.108;
-  if (count <= 8) return base * 0.098;
-  return base * 0.088;
+// ----------------------------------------------------
+// RESPONSIVE DISC SIZE
+// ----------------------------------------------------
+
+function getDiscRadius(count) {
+
+  let base =
+    min(
+      width,
+      height
+    );
+
+
+  if (count <= 4) {
+
+    return base * 0.12;
+
+  }
+
+
+  if (count <= 6) {
+
+    return base * 0.108;
+
+  }
+
+
+  if (count <= 8) {
+
+    return base * 0.098;
+
+  }
+
+
+  if (count <= 10) {
+
+    return base * 0.088;
+
+  }
+
+
+  if (count <= 12) {
+
+    return base * 0.080;
+
+  }
+
+
+  // 13–15 characters
+  return base * 0.074;
 }
 
 
@@ -222,37 +692,132 @@ function getDiscRadius(count) {
 // ----------------------------------------------------
 
 function drawDiscs() {
-  for (let d of discs) {
-    let x = d.body.position.x;
-    let y = d.body.position.y;
-    let a = d.body.angle;
-    let diameter = d.radius * 2;
-    let outlineW = max(4, d.radius * 0.07);
+
+  for (
+    let d of discs
+  ) {
+
+    let x =
+      d.body.position.x;
+
+
+    let y =
+      d.body.position.y;
+
+
+    let a =
+      d.body.angle;
+
+
+    let diameter =
+      d.radius * 2;
+
+
+    let outlineW =
+      max(
+        4,
+        d.radius * 0.07
+      );
+
 
     push();
-    translate(x, y);
-    rotate(a);
+
+
+    translate(
+      x,
+      y
+    );
+
+
+    rotate(
+      a
+    );
+
+
+    // ------------------------------------------------
+    // OUTLINED DISC
+    // ------------------------------------------------
 
     if (d.outlined) {
+
       noFill();
-      stroke(FG_COLOR);
-      strokeWeight(outlineW);
-      circle(0, 0, diameter);
+
+      stroke(
+        FG_COLOR
+      );
+
+      strokeWeight(
+        outlineW
+      );
+
+      circle(
+        0,
+        0,
+        diameter
+      );
+
 
       noStroke();
-      fill(FG_COLOR);
-    } else {
-      noStroke();
-      fill(FG_COLOR);
-      circle(0, 0, diameter);
 
-      fill(BG_COLOR);
+      fill(
+        FG_COLOR
+      );
+
     }
 
-    textFont(fontMain);
-    textSize(d.textSize);
-    textAlign(CENTER, CENTER);
-    text(d.char, 0, d.radius * 0.05);
+
+    // ------------------------------------------------
+    // FILLED DISC
+    // ------------------------------------------------
+
+    else {
+
+      noStroke();
+
+      fill(
+        FG_COLOR
+      );
+
+      circle(
+        0,
+        0,
+        diameter
+      );
+
+
+      fill(
+        BG_COLOR
+      );
+    }
+
+
+    // ------------------------------------------------
+    // LETTER
+    // ------------------------------------------------
+
+    textFont(
+      fontMain
+    );
+
+
+    textSize(
+      d.textSize
+    );
+
+
+    textAlign(
+      CENTER,
+      CENTER
+    );
+
+
+    text(
+      d.char,
+      0,
+      d.radius
+      * LETTER_Y_OFFSET
+    );
+
 
     pop();
   }
@@ -264,82 +829,212 @@ function drawDiscs() {
 // ----------------------------------------------------
 
 function createWalls() {
+
   clearWalls();
 
-  let t = WALL_THICKNESS;
-  let safe = getSafeBounds();
 
-  let left = safe.left;
-  let right = width - safe.right;
-  let top = safe.top;
-  let bottom = height - safe.bottom;
+  let t =
+    WALL_THICKNESS;
+
+
+  let safe =
+    getSafeBounds();
+
+
+  let left =
+    safe.left;
+
+
+  let right =
+    width
+    -
+    safe.right;
+
+
+  let top =
+    safe.top;
+
+
+  let bottom =
+    height
+    -
+    safe.bottom;
+
+
+  // --------------------------------------------------
+  // TOP WALL
+  // --------------------------------------------------
 
   walls.push(
+
     Bodies.rectangle(
+
       (left + right) * 0.5,
+
       top - t * 0.5,
-      (right - left) + t * 2,
+
+      (right - left)
+      +
+      t * 2,
+
       t,
-      { isStatic: true,
+
+      {
+
+        isStatic: true,
+
         restitution: 0.18,
+
         friction: 0.05
+
       }
+
     )
+
   );
 
+
+  // --------------------------------------------------
+  // BOTTOM WALL
+  // --------------------------------------------------
+
   walls.push(
+
     Bodies.rectangle(
+
       (left + right) * 0.5,
+
       bottom + t * 0.5,
-      (right - left) + t * 2,
+
+      (right - left)
+      +
+      t * 2,
+
       t,
-      { isStatic: true,
+
+      {
+
+        isStatic: true,
+
         restitution: 0.18,
+
         friction: 0.05
+
       }
+
     )
+
   );
 
+
+  // --------------------------------------------------
+  // LEFT WALL
+  // --------------------------------------------------
+
   walls.push(
+
     Bodies.rectangle(
+
       left - t * 0.5,
+
       (top + bottom) * 0.5,
+
       t,
-      (bottom - top) + t * 2,
-      { isStatic: true,
+
+      (bottom - top)
+      +
+      t * 2,
+
+      {
+
+        isStatic: true,
+
         restitution: 0.18,
+
         friction: 0.05
+
       }
+
     )
+
   );
+
+
+  // --------------------------------------------------
+  // RIGHT WALL
+  // --------------------------------------------------
 
   walls.push(
+
     Bodies.rectangle(
+
       right + t * 0.5,
+
       (top + bottom) * 0.5,
+
       t,
-      (bottom - top) + t * 2,
-      { isStatic: true,
+
+      (bottom - top)
+      +
+      t * 2,
+
+      {
+
+        isStatic: true,
+
         restitution: 0.18,
+
         friction: 0.05
+
       }
+
     )
+
   );
 
-  World.add(world, walls);
+
+  World.add(
+    world,
+    walls
+  );
 }
 
+
+// ----------------------------------------------------
+// CLEAR WALLS
+// ----------------------------------------------------
+
 function clearWalls() {
-  for (let w of walls) {
-    World.remove(world, w);
+
+  for (
+    let w of walls
+  ) {
+
+    World.remove(
+      world,
+      w
+    );
   }
+
+
   walls = [];
 }
 
+
+// ----------------------------------------------------
+// SAFE BOUNDS
+// ----------------------------------------------------
+
 function getSafeBounds() {
-  if (isTouchDevice()) {
+
+  if (
+    isTouchDevice()
+  ) {
+
     return SAFE_BOUNDS_MOBILE;
   }
+
+
   return SAFE_BOUNDS_DESKTOP;
 }
 
@@ -349,33 +1044,133 @@ function getSafeBounds() {
 // ----------------------------------------------------
 
 function updateGravity() {
+
   let gx = 0;
   let gy = 0;
 
-  if (motionEnabled && hasOrientationData) {
-    let diffGamma = rawGamma - neutralGamma;
-    let diffBeta = rawBeta - neutralBeta;
 
-    gx = constrain(diffGamma / 22, -1, 1);
+  // --------------------------------------------------
+  // PHONE
+  // --------------------------------------------------
 
-    // FIXED vertical direction:
-    // tilt down -> fall down
-    // tilt up -> fall up
-    gy = constrain(diffBeta / 22, -1, 1);
-  } else if (!isTouchDevice()) {
-    // desktop mouse fallback
-    let nx = (mouseX - width * 0.5) / (width * 0.5);
-    let ny = (mouseY - height * 0.5) / (height * 0.5);
+  if (
+    motionEnabled
+    &&
+    hasOrientationData
+  ) {
 
-    gx = constrain(nx, -1, 1);
-    gy = constrain(ny, -1, 1);
-  } else {
+    let diffGamma =
+      rawGamma
+      -
+      neutralGamma;
+
+
+    let diffBeta =
+      rawBeta
+      -
+      neutralBeta;
+
+
+    gx =
+      constrain(
+        diffGamma / 22,
+        -1,
+        1
+      );
+
+
+    // tilt down = circles fall down
+    // tilt up   = circles fall up
+
+    gy =
+      constrain(
+        diffBeta / 22,
+        -1,
+        1
+      );
+
+  }
+
+
+  // --------------------------------------------------
+  // DESKTOP MOUSE FALLBACK
+  // --------------------------------------------------
+
+  else if (
+    !isTouchDevice()
+  ) {
+
+    let nx =
+      (
+        mouseX
+        -
+        width * 0.5
+      )
+      /
+      (
+        width * 0.5
+      );
+
+
+    let ny =
+      (
+        mouseY
+        -
+        height * 0.5
+      )
+      /
+      (
+        height * 0.5
+      );
+
+
+    gx =
+      constrain(
+        nx,
+        -1,
+        1
+      );
+
+
+    gy =
+      constrain(
+        ny,
+        -1,
+        1
+      );
+
+  }
+
+
+  // --------------------------------------------------
+  // PHONE MOTION OFF
+  // --------------------------------------------------
+
+  else {
+
     gx = 0;
     gy = 0;
   }
 
-  world.gravity.x = lerp(world.gravity.x, gx, 0.14);
-  world.gravity.y = lerp(world.gravity.y, gy, 0.14);
+
+  // --------------------------------------------------
+  // SMOOTH GRAVITY
+  // --------------------------------------------------
+
+  world.gravity.x =
+    lerp(
+      world.gravity.x,
+      gx,
+      0.14
+    );
+
+
+  world.gravity.y =
+    lerp(
+      world.gravity.y,
+      gy,
+      0.14
+    );
 }
 
 
@@ -384,102 +1179,261 @@ function updateGravity() {
 // ----------------------------------------------------
 
 function handleOrientation(event) {
-  if (event.gamma === null || event.beta === null) return;
 
-  rawGamma = event.gamma;
-  rawBeta = event.beta;
-  hasOrientationData = true;
+  if (
+    event.gamma === null
+    ||
+    event.beta === null
+  ) {
+
+    return;
+  }
+
+
+  rawGamma =
+    event.gamma;
+
+
+  rawBeta =
+    event.beta;
+
+
+  hasOrientationData =
+    true;
 }
 
-function calibrateMotion() {
-  if (!hasOrientationData) return;
 
-  neutralGamma = rawGamma;
-  neutralBeta = rawBeta;
+// ----------------------------------------------------
+// CALIBRATE
+// ----------------------------------------------------
+
+function calibrateMotion() {
+
+  if (
+    !hasOrientationData
+  ) {
+
+    return;
+  }
+
+
+  neutralGamma =
+    rawGamma;
+
+
+  neutralBeta =
+    rawBeta;
+
 
   world.gravity.x = 0;
   world.gravity.y = 0;
 
+
   freezeDiscs();
 
-  calibrateButton.html("CALIBRATED");
 
-  setTimeout(() => {
-    calibrateButton.html("CALIBRATE");
-  }, 800);
+  calibrateButton.html(
+    "Calibrated"
+  );
+
+
+  setTimeout(
+
+    () => {
+
+      calibrateButton.html(
+        "Calibrate"
+      );
+
+    },
+
+    800
+
+  );
 }
 
 
 // ----------------------------------------------------
 // TOGGLE PHONE MOTION
-// same button ON / OFF
 // ----------------------------------------------------
 
 async function toggleMotion() {
-  // if already on -> turn off
-  if (motionEnabled) {
+
+  // --------------------------------------------------
+  // TURN OFF
+  // --------------------------------------------------
+
+  if (
+    motionEnabled
+  ) {
+
     motionEnabled = false;
-    motionButton.html("ENABLE PHONE MOTION");
+
+
+    motionButton.html(
+      "Enable Phone Motion"
+    );
+
 
     world.gravity.x = 0;
     world.gravity.y = 0;
 
+
     freezeDiscs();
+
+
     return;
   }
 
-  // turn on
-  try {
-    if (!sensorStarted) {
-      if (
-        typeof DeviceOrientationEvent !== "undefined" &&
-        typeof DeviceOrientationEvent.requestPermission === "function"
-      ) {
-        let permission = await DeviceOrientationEvent.requestPermission();
 
-        if (permission !== "granted") {
-          motionButton.html("MOTION DENIED");
+  // --------------------------------------------------
+  // TURN ON
+  // --------------------------------------------------
+
+  try {
+
+    if (
+      !sensorStarted
+    ) {
+
+      if (
+        typeof DeviceOrientationEvent
+        !==
+        "undefined"
+        &&
+        typeof DeviceOrientationEvent.requestPermission
+        ===
+        "function"
+      ) {
+
+        let permission =
+          await
+          DeviceOrientationEvent.requestPermission();
+
+
+        if (
+          permission
+          !==
+          "granted"
+        ) {
+
+          motionButton.html(
+            "Motion Denied"
+          );
+
           return;
         }
       }
 
-      window.addEventListener("deviceorientation", handleOrientation);
-      sensorStarted = true;
+
+      window.addEventListener(
+        "deviceorientation",
+        handleOrientation
+      );
+
+
+      sensorStarted =
+        true;
     }
 
-    motionEnabled = true;
-    motionButton.html("PHONE MOTION ON");
-    calibrateButton.show();
 
-    setTimeout(() => {
-      if (hasOrientationData) {
-        calibrateMotion();
-      }
-    }, 400);
+    motionEnabled =
+      true;
 
-  } catch (error) {
-    console.error(error);
-    motionButton.html("MOTION ERROR");
+
+    motionButton.html(
+      "Disable Phone Motion"
+    );
+
+
+    // ------------------------------------------------
+    // AUTO CALIBRATE
+    // ------------------------------------------------
+
+    setTimeout(
+
+      () => {
+
+        if (
+          hasOrientationData
+        ) {
+
+          calibrateMotion();
+        }
+
+      },
+
+      400
+
+    );
+
   }
-}
 
-function freezeDiscs() {
-  for (let d of discs) {
-    Body.setVelocity(d.body, { x: 0, y: 0 });
-    Body.setAngularVelocity(d.body, 0);
+
+  catch (error) {
+
+    console.error(
+      error
+    );
+
+
+    motionButton.html(
+      "Motion Error"
+    );
   }
 }
 
 
 // ----------------------------------------------------
-// HELPERS
+// FREEZE DISCS
+// ----------------------------------------------------
+
+function freezeDiscs() {
+
+  for (
+    let d of discs
+  ) {
+
+    Body.setVelocity(
+      d.body,
+      {
+        x: 0,
+        y: 0
+      }
+    );
+
+
+    Body.setAngularVelocity(
+      d.body,
+      0
+    );
+  }
+}
+
+
+// ----------------------------------------------------
+// TOUCH DEVICE
 // ----------------------------------------------------
 
 function isTouchDevice() {
+
   return (
-    "ontouchstart" in window ||
-    navigator.maxTouchPoints > 0 ||
-    navigator.msMaxTouchPoints > 0
+
+    "ontouchstart"
+    in window
+
+    ||
+
+    navigator.maxTouchPoints
+    >
+    0
+
+    ||
+
+    navigator.msMaxTouchPoints
+    >
+    0
+
   );
 }
 
@@ -489,26 +1443,17 @@ function isTouchDevice() {
 // ----------------------------------------------------
 
 function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
+
+  resizeCanvas(
+    windowWidth,
+    windowHeight
+  );
+
+
   createWalls();
-  rebuildDiscs(inputField.value());
-}
 
 
-// ----------------------------------------------------
-// STYLES
-// ----------------------------------------------------
-
-function styleLabel(el) {
-  el.style("color", "black");
-  el.style("font-family", "Arial, sans-serif");
-  el.style("font-size", "11px");
-  el.style("letter-spacing", "1px");
-  el.style("font-weight", "bold");
-}
-
-function styleButton(el) {
-  el.style("background", "white");
-  el.style("color", "black");
-  el.style("font-family", "Arial, sans-serif");
+  rebuildDiscs(
+    inputField.value()
+  );
 }
