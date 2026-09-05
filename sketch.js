@@ -37,10 +37,10 @@ const WALL_THICKNESS = 140;
 
 // keeps circles away from phone edges / safari bar
 const SAFE_BOUNDS_MOBILE = {
-  left: 22,
-  right: 22,
-  top: 22,
-  bottom: 130
+  left: 0,
+  right: 0,
+  top: 0,
+  bottom: 15
 };
 
 const SAFE_BOUNDS_DESKTOP = {
@@ -172,10 +172,10 @@ function rebuildDiscs(rawText) {
     let y = startY + row * spacing + random(-8, 8);
 
     let body = Bodies.circle(x, y, radius, {
-      restitution: 0.10,
-      friction: 0.05,
-      frictionStatic: 0.35,
-      frictionAir: 0.035,
+      restitution: 0.28,
+      friction: 0.04,
+      frictionStatic: 0.25,
+      frictionAir: 0.025,
       density: 0.0014
     });
 
@@ -280,7 +280,10 @@ function createWalls() {
       top - t * 0.5,
       (right - left) + t * 2,
       t,
-      { isStatic: true }
+      { isStatic: true
+        restitution: 0.18,
+        friction: 0.05
+      }
     )
   );
 
@@ -290,7 +293,10 @@ function createWalls() {
       bottom + t * 0.5,
       (right - left) + t * 2,
       t,
-      { isStatic: true }
+      { isStatic: true
+        restitution: 0.18,
+        friction: 0.05
+      }
     )
   );
 
@@ -300,7 +306,10 @@ function createWalls() {
       (top + bottom) * 0.5,
       t,
       (bottom - top) + t * 2,
-      { isStatic: true }
+      { isStatic: true
+        restitution: 0.18,
+        friction: 0.05
+      }
     )
   );
 
@@ -310,7 +319,10 @@ function createWalls() {
       (top + bottom) * 0.5,
       t,
       (bottom - top) + t * 2,
-      { isStatic: true }
+      { isStatic: true
+        restitution: 0.18,
+        friction: 0.05
+      }
     )
   );
 
