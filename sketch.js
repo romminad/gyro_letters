@@ -280,7 +280,7 @@ function createWalls() {
       top - t * 0.5,
       (right - left) + t * 2,
       t,
-      { isStatic: true
+      { isStatic: true,
         restitution: 0.18,
         friction: 0.05
       }
@@ -293,7 +293,7 @@ function createWalls() {
       bottom + t * 0.5,
       (right - left) + t * 2,
       t,
-      { isStatic: true
+      { isStatic: true,
         restitution: 0.18,
         friction: 0.05
       }
@@ -306,7 +306,7 @@ function createWalls() {
       (top + bottom) * 0.5,
       t,
       (bottom - top) + t * 2,
-      { isStatic: true
+      { isStatic: true,
         restitution: 0.18,
         friction: 0.05
       }
@@ -319,7 +319,7 @@ function createWalls() {
       (top + bottom) * 0.5,
       t,
       (bottom - top) + t * 2,
-      { isStatic: true
+      { isStatic: true,
         restitution: 0.18,
         friction: 0.05
       }
