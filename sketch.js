@@ -11,6 +11,7 @@ let discs = [];
 
 let fontMain;
 
+
 // ----------------------------------------------------
 // PHONE MOTION
 // ----------------------------------------------------
@@ -37,7 +38,6 @@ let calibrateButton;
 let inputField;
 let updateButton;
 let resetButton;
-
 let uiHint;
 
 let uiVisible = true;
@@ -56,16 +56,16 @@ const FG_COLOR = "#000000";
 // DISC SETTINGS
 // ----------------------------------------------------
 
-// overall circle size
+// Overall circle size
 const SIZE_MULTIPLIER = 1.15;
 
-// letter vertical position
+// Letter size INSIDE circle
+const LETTER_SIZE_MULTIPLIER = 1.55;
+
+// Letter vertical position
 // negative = higher
 // positive = lower
 const LETTER_Y_OFFSET = 0.001;
-
-// letter size INSIDE circle
-const LETTER_SIZE_MULTIPLIER = 1.55;
 
 
 // ----------------------------------------------------
@@ -78,7 +78,7 @@ const WALL_THICKNESS = 140;
 // ----------------------------------------------------
 // SCREEN LIMITS
 //
-// Increase a number to push that boundary inward.
+// Increase a number to move that wall inward.
 // ----------------------------------------------------
 
 const SAFE_BOUNDS_MOBILE = {
@@ -102,7 +102,7 @@ const SAFE_BOUNDS_DESKTOP = {
 
 function preload() {
 
-  // Typeface used inside circles
+  // Typeface used inside the circles
   fontMain = loadFont(
     "QuasarRoundedUnlicensedTrialVersion-120.otf"
   );
@@ -129,10 +129,21 @@ function setup() {
 
 
   // --------------------------------------------------
+  // Make custom double tap more reliable on mobile
+  // --------------------------------------------------
+
+  canvas.elt.style.touchAction = "none";
+
+  canvas.elt.style.webkitTapHighlightColor =
+    "transparent";
+
+
+  // --------------------------------------------------
   // MATTER
   // --------------------------------------------------
 
   engine = Engine.create();
+
   world = engine.world;
 
   world.gravity.scale = 0.0014;
@@ -262,8 +273,6 @@ function createUI() {
 
   // --------------------------------------------------
   // RESET
-  //
-  // Clears input AND removes all circles.
   // --------------------------------------------------
 
   resetButton = createButton(
@@ -278,10 +287,13 @@ function createUI() {
   resetButton.mousePressed(
     () => {
 
+      // Clear text field
       inputField.value("");
 
+      // Remove every disc
       clearDiscs();
 
+      // Stop current gravity
       world.gravity.x = 0;
       world.gravity.y = 0;
 
@@ -294,7 +306,7 @@ function createUI() {
 
 
   // --------------------------------------------------
-  // DOUBLE TAP MESSAGE
+  // DOUBLE TAP NOTE
   // --------------------------------------------------
 
   uiHint = createDiv(
@@ -307,22 +319,24 @@ function createUI() {
 
 
   // --------------------------------------------------
-  // STORE UI ELEMENTS
+  // STORE EVERYTHING THAT SHOULD HIDE
   // --------------------------------------------------
 
   uiElements = [
+
     motionButton,
     calibrateButton,
     inputField,
     updateButton,
     resetButton,
     uiHint
+
   ];
 }
 
 
 // ----------------------------------------------------
-// UI STYLE
+// UI STYLES
 // ----------------------------------------------------
 
 function installUIStyles() {
@@ -334,6 +348,10 @@ function installUIStyles() {
 
 
   style.innerHTML = `
+
+    /* -----------------------------------------
+       UI FONT
+    ----------------------------------------- */
 
     @font-face {
 
@@ -352,6 +370,10 @@ function installUIStyles() {
 
     }
 
+
+    /* -----------------------------------------
+       SHARED
+    ----------------------------------------- */
 
     .ui-button,
     .ui-input,
@@ -411,6 +433,9 @@ function installUIStyles() {
 
       appearance:
         none;
+
+      touch-action:
+        manipulation;
 
     }
 
@@ -486,7 +511,7 @@ function installUIStyles() {
 
 
     /* -----------------------------------------
-       UI HINT
+       DOUBLE TAP HINT
     ----------------------------------------- */
 
     .ui-hint {
@@ -571,21 +596,36 @@ function installUIStyles() {
 
 
 // ----------------------------------------------------
-// DOUBLE TAP UI
+// IMPROVED DOUBLE TAP UI
 // ----------------------------------------------------
 
 function setupUIToggle() {
 
-  let lastTap = 0;
+  let lastTapTime = 0;
+
+  let lastTapX = 0;
+  let lastTapY = 0;
 
 
   // --------------------------------------------------
-  // PHONE DOUBLE TAP
+  // DOUBLE TAP SETTINGS
+  //
+  // Increase TIME if you want slower taps accepted.
+  // Increase DISTANCE if taps can be further apart.
+  // --------------------------------------------------
+
+  const DOUBLE_TAP_TIME = 450;
+
+  const DOUBLE_TAP_DISTANCE = 80;
+
+
+  // --------------------------------------------------
+  // POINTERUP works with phone + desktop
   // --------------------------------------------------
 
   canvas.elt.addEventListener(
 
-    "touchend",
+    "pointerup",
 
     function(event) {
 
@@ -593,45 +633,78 @@ function setupUIToggle() {
         Date.now();
 
 
-      let tapLength =
-        now - lastTap;
+      let timeDifference =
+        now - lastTapTime;
 
+
+      let dx =
+        event.clientX
+        -
+        lastTapX;
+
+
+      let dy =
+        event.clientY
+        -
+        lastTapY;
+
+
+      let distance =
+        Math.sqrt(
+          dx * dx
+          +
+          dy * dy
+        );
+
+
+      // ------------------------------------------------
+      // DOUBLE TAP DETECTED
+      // ------------------------------------------------
 
       if (
-        tapLength < 300 &&
-        tapLength > 0
+
+        timeDifference > 40
+
+        &&
+
+        timeDifference <
+        DOUBLE_TAP_TIME
+
+        &&
+
+        distance <
+        DOUBLE_TAP_DISTANCE
+
       ) {
 
         event.preventDefault();
 
         toggleUI();
 
+
+        // Reset so a third tap
+        // doesn't instantly toggle again
+
+        lastTapTime = 0;
+
+        return;
       }
 
 
-      lastTap =
+      // ------------------------------------------------
+      // STORE FIRST TAP
+      // ------------------------------------------------
+
+      lastTapTime =
         now;
 
-    },
 
-    {
-      passive: false
-    }
-
-  );
+      lastTapX =
+        event.clientX;
 
 
-  // --------------------------------------------------
-  // DESKTOP DOUBLE CLICK
-  // --------------------------------------------------
-
-  canvas.elt.addEventListener(
-
-    "dblclick",
-
-    function() {
-
-      toggleUI();
+      lastTapY =
+        event.clientY;
 
     }
 
@@ -653,7 +726,9 @@ function toggleUI() {
     let el of uiElements
   ) {
 
-    if (uiVisible) {
+    if (
+      uiVisible
+    ) {
 
       el.show();
 
@@ -694,7 +769,7 @@ function draw() {
 
 
 // ----------------------------------------------------
-// REBUILD DISCS
+// BUILD DISCS
 // ----------------------------------------------------
 
 function rebuildDiscs(rawText) {
@@ -703,12 +778,12 @@ function rebuildDiscs(rawText) {
 
 
   let chars =
-    sanitizeText(rawText);
+    sanitizeText(
+      rawText
+    );
 
 
-  // IMPORTANT:
-  // If text is empty, leave sketch empty.
-  // No automatic "A".
+  // Empty input = empty sketch
   if (
     chars.length === 0
   ) {
@@ -739,7 +814,8 @@ function rebuildDiscs(rawText) {
 
   let rows =
     ceil(
-      chars.length /
+      chars.length
+      /
       cols
     );
 
@@ -752,7 +828,8 @@ function rebuildDiscs(rawText) {
       *
       spacing
     )
-    * 0.5;
+    *
+    0.5;
 
 
   let startY =
@@ -763,7 +840,8 @@ function rebuildDiscs(rawText) {
       *
       spacing
     )
-    * 0.5;
+    *
+    0.5;
 
 
   for (
@@ -808,7 +886,7 @@ function rebuildDiscs(rawText) {
         {
 
           // --------------------------------------
-          // BOUNCE
+          // BOUNCINESS
           // --------------------------------------
 
           restitution:
@@ -862,7 +940,7 @@ function rebuildDiscs(rawText) {
 
 
 // ----------------------------------------------------
-// CLEAR ALL DISCS
+// CLEAR DISCS
 // ----------------------------------------------------
 
 function clearDiscs() {
@@ -883,7 +961,7 @@ function clearDiscs() {
 
 
 // ----------------------------------------------------
-// TEXT
+// TEXT CLEANUP
 // ----------------------------------------------------
 
 function sanitizeText(value) {
@@ -912,7 +990,7 @@ function sanitizeText(value) {
 
 
 // ----------------------------------------------------
-// DISC SIZE
+// RESPONSIVE DISC SIZE
 // ----------------------------------------------------
 
 function getDiscRadius(count) {
@@ -1018,7 +1096,7 @@ function drawDiscs() {
 
 
     // ------------------------------------------------
-    // OUTLINED
+    // OUTLINED DISC
     // ------------------------------------------------
 
     if (
@@ -1053,7 +1131,7 @@ function drawDiscs() {
 
 
     // ------------------------------------------------
-    // FILLED
+    // FILLED DISC
     // ------------------------------------------------
 
     else {
@@ -1334,7 +1412,7 @@ function createWalls() {
 
 
 // ----------------------------------------------------
-// REMOVE WALLS
+// CLEAR WALLS
 // ----------------------------------------------------
 
 function clearWalls() {
@@ -1355,7 +1433,7 @@ function clearWalls() {
 
 
 // ----------------------------------------------------
-// SAFE BOUNDS
+// SCREEN BOUNDS
 // ----------------------------------------------------
 
 function getSafeBounds() {
@@ -1412,8 +1490,8 @@ function updateGravity() {
       );
 
 
-    // tilt down = gravity down
-    // tilt up   = gravity up
+    // Tilt down = gravity down
+    // Tilt up = gravity up
 
     gy =
       constrain(
@@ -1426,7 +1504,7 @@ function updateGravity() {
 
 
   // --------------------------------------------------
-  // DESKTOP MOUSE
+  // DESKTOP MOUSE FALLBACK
   // --------------------------------------------------
 
   else if (
@@ -1505,7 +1583,7 @@ function updateGravity() {
 
 
 // ----------------------------------------------------
-// SENSOR DATA
+// DEVICE ORIENTATION
 // ----------------------------------------------------
 
 function handleOrientation(event) {
@@ -1628,6 +1706,7 @@ async function toggleMotion() {
     ) {
 
       if (
+
         typeof DeviceOrientationEvent
         !==
         "undefined"
@@ -1637,6 +1716,7 @@ async function toggleMotion() {
         typeof DeviceOrientationEvent.requestPermission
         ===
         "function"
+
       ) {
 
         let permission =
@@ -1679,7 +1759,9 @@ async function toggleMotion() {
     );
 
 
-    // Auto calibrate
+    // ------------------------------------------------
+    // AUTO CALIBRATE
+    // ------------------------------------------------
 
     setTimeout(
 
@@ -1720,7 +1802,7 @@ async function toggleMotion() {
 
 
 // ----------------------------------------------------
-// FREEZE
+// FREEZE DISCS
 // ----------------------------------------------------
 
 function freezeDiscs() {
@@ -1783,9 +1865,4 @@ function windowResized() {
 
 
   createWalls();
-
-
-  rebuildDiscs(
-    inputField.value()
-  );
 }
