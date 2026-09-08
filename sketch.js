@@ -21,26 +21,18 @@ let fontMain;
 // COLOURS
 // ----------------------------------------------------
 
-// BLACK circles + outlines
-const FG_COLOR = "#000000";
+// FIXED BACKGROUND
+const BG_COLOR = "#ff1a0d";
 
-// RED letters inside filled circles
+// FILLED BALL STATES
+const DISC_BLACK = "#000000";
+const DISC_WHITE = "#ffffff";
+
+// LETTER INSIDE FILLED BALL
 const LETTER_COLOR = "#ff1a0d";
 
-
-// ----------------------------------------------------
-// BACKGROUND COLOURS
-//
-// CHANGE THESE HERE
-// ----------------------------------------------------
-
-const BG_RED = "#ff1a0d";
-
-const BG_WHITE = "#ffffff";
-
-
-// Sketch starts RED
-let currentBGColor = BG_RED;
+// OUTLINED BALL + LETTER
+const OUTLINE_COLOR = "#000000";
 
 
 // ----------------------------------------------------
@@ -70,19 +62,16 @@ const LETTER_Y_OFFSET = 0.001;
 
 
 // ----------------------------------------------------
-// BOUNCE / PHYSICS
+// PHYSICS / BOUNCE
 //
-// THESE ARE THE MAIN VALUES TO PLAY WITH
+// Increase these for more bounce
 // ----------------------------------------------------
 
-// Circle-to-circle bounce
 const DISC_BOUNCE = 0.45;
 
-// Bounce against screen edges
 const WALL_BOUNCE = 0.40;
 
 // Lower = keeps moving longer
-// Higher = settles faster
 const AIR_DRAG = 0.016;
 
 
@@ -96,32 +85,21 @@ const WALL_THICKNESS = 140;
 // ----------------------------------------------------
 // SCREEN LIMITS
 //
-// Increase a number to move that edge inward.
+// Increase a number to move that edge inward
 // ----------------------------------------------------
 
 const SAFE_BOUNDS_MOBILE = {
-
   left: 0,
-
   right: 0,
-
   top: 0,
-
   bottom: 10
-
 };
 
-
 const SAFE_BOUNDS_DESKTOP = {
-
   left: 18,
-
   right: 18,
-
   top: 18,
-
   bottom: 18
-
 };
 
 
@@ -136,9 +114,7 @@ let neutralGamma = 0;
 let neutralBeta = 0;
 
 let motionEnabled = false;
-
 let hasOrientationData = false;
-
 let sensorStarted = false;
 
 
@@ -157,7 +133,6 @@ let resetButton;
 let uiHint;
 
 let uiVisible = true;
-
 let uiElements = [];
 
 
@@ -185,17 +160,10 @@ function setup() {
     windowHeight
   );
 
-
   pixelDensity(1);
 
-
   textFont(fontMain);
-
-  textAlign(
-    CENTER,
-    CENTER
-  );
-
+  textAlign(CENTER, CENTER);
 
   noStroke();
 
@@ -204,9 +172,7 @@ function setup() {
   // Improve double tap on mobile
   // --------------------------------------------------
 
-  canvas.elt.style.touchAction =
-    "none";
-
+  canvas.elt.style.touchAction = "none";
 
   canvas.elt.style.webkitTapHighlightColor =
     "transparent";
@@ -216,45 +182,27 @@ function setup() {
   // MATTER
   // --------------------------------------------------
 
-  engine =
-    Engine.create();
+  engine = Engine.create();
 
+  world = engine.world;
 
-  world =
-    engine.world;
+  world.gravity.scale = 0.0014;
 
-
-  world.gravity.scale =
-    0.0014;
-
-
-  world.gravity.x =
-    0;
-
-
-  world.gravity.y =
-    0;
+  world.gravity.x = 0;
+  world.gravity.y = 0;
 
 
   createWalls();
 
-
-  // Detect wall collisions
   setupEdgeCollisions();
 
-
-  // Create controls
   createUI();
 
-
-  // Double tap hide / show UI
   setupUIToggle();
 
 
   // Initial example
-  rebuildDiscs(
-    "TS2A8"
-  );
+  rebuildDiscs("TS2A8");
 
 }
 
@@ -265,9 +213,8 @@ function setup() {
 
 function draw() {
 
-  background(
-    currentBGColor
-  );
+  // BG ALWAYS RED
+  background(BG_COLOR);
 
 
   updateGravity();
@@ -302,17 +249,14 @@ function createUI() {
       "Phone Motion Off"
     );
 
-
   motionButton.position(
     25,
     24
   );
 
-
   motionButton.mousePressed(
     toggleMotion
   );
-
 
   motionButton.addClass(
     "ui-button"
@@ -328,17 +272,14 @@ function createUI() {
       "Calibrate"
     );
 
-
   calibrateButton.position(
     25,
     68
   );
 
-
   calibrateButton.mousePressed(
     calibrateMotion
   );
-
 
   calibrateButton.addClass(
     "ui-button"
@@ -352,24 +293,20 @@ function createUI() {
   inputField =
     createInput("");
 
-
   inputField.position(
     25,
     112
   );
-
 
   inputField.attribute(
     "maxlength",
     "15"
   );
 
-
   inputField.attribute(
     "placeholder",
     "Insert text"
   );
-
 
   inputField.addClass(
     "ui-input"
@@ -385,12 +322,10 @@ function createUI() {
       "Update"
     );
 
-
   updateButton.position(
     25,
     156
   );
-
 
   updateButton.mousePressed(
     () => {
@@ -401,7 +336,6 @@ function createUI() {
 
     }
   );
-
 
   updateButton.addClass(
     "ui-button"
@@ -417,35 +351,23 @@ function createUI() {
       "Reset"
     );
 
-
   resetButton.position(
     132,
     156
   );
 
-
   resetButton.mousePressed(
     () => {
 
-      // Clear input
       inputField.value("");
 
-
-      // Remove all circles
       clearDiscs();
 
-
-      // Stop gravity
       world.gravity.x = 0;
       world.gravity.y = 0;
 
-
-      // Return BG to RED
-      currentBGColor = BG_RED;
-
     }
   );
-
 
   resetButton.addClass(
     "ui-button"
@@ -461,28 +383,22 @@ function createUI() {
       "Double Tap UI on/off"
     );
 
-
   uiHint.addClass(
     "ui-hint"
   );
 
 
   // --------------------------------------------------
-  // ELEMENTS THAT HIDE
+  // UI ELEMENTS THAT HIDE
   // --------------------------------------------------
 
   uiElements = [
 
     motionButton,
-
     calibrateButton,
-
     inputField,
-
     updateButton,
-
     resetButton,
-
     uiHint
 
   ];
@@ -504,11 +420,6 @@ function installUIStyles() {
 
   style.innerHTML = `
 
-
-    /* =========================================
-       UI FONT
-    ========================================= */
-
     @font-face {
 
       font-family:
@@ -526,10 +437,6 @@ function installUIStyles() {
 
     }
 
-
-    /* =========================================
-       SHARED
-    ========================================= */
 
     .ui-button,
     .ui-input,
@@ -549,7 +456,7 @@ function installUIStyles() {
 
 
     /* =========================================
-       BUTTONS
+       BUTTON
     ========================================= */
 
     .ui-button {
@@ -625,7 +532,7 @@ function installUIStyles() {
         7px 11px;
 
       background:
-        ${BG_RED};
+        ${BG_COLOR};
 
       color:
         #000000;
@@ -763,15 +670,14 @@ function setupUIToggle() {
   let lastTapTime = 0;
 
   let lastTapX = 0;
-
   let lastTapY = 0;
 
 
   // --------------------------------------------------
   // DOUBLE TAP SETTINGS
   //
-  // Increase TIME if you want slower taps accepted.
-  // Increase DISTANCE if taps can be further apart.
+  // Increase TIME to allow slower taps
+  // Increase DISTANCE to allow taps further apart
   // --------------------------------------------------
 
   const DOUBLE_TAP_TIME = 450;
@@ -790,35 +696,26 @@ function setupUIToggle() {
 
 
       let timeDifference =
-        now
-        -
-        lastTapTime;
+        now - lastTapTime;
 
 
       let dx =
-        event.clientX
-        -
-        lastTapX;
+        event.clientX - lastTapX;
 
 
       let dy =
-        event.clientY
-        -
-        lastTapY;
+        event.clientY - lastTapY;
 
 
       let distance =
         Math.sqrt(
-
-          dx * dx
-          +
+          dx * dx +
           dy * dy
-
         );
 
 
       // ------------------------------------------------
-      // DOUBLE TAP DETECTED
+      // DOUBLE TAP
       // ------------------------------------------------
 
       if (
@@ -839,13 +736,9 @@ function setupUIToggle() {
 
         event.preventDefault();
 
-
         toggleUI();
 
-
-        // reset gesture
         lastTapTime = 0;
-
 
         return;
 
@@ -856,13 +749,10 @@ function setupUIToggle() {
       // STORE FIRST TAP
       // ------------------------------------------------
 
-      lastTapTime =
-        now;
-
+      lastTapTime = now;
 
       lastTapX =
         event.clientX;
-
 
       lastTapY =
         event.clientY;
@@ -908,7 +798,7 @@ function toggleUI() {
 
 
 // ====================================================
-// CREATE / REBUILD DISCS
+// CREATE DISCS
 // ====================================================
 
 function rebuildDiscs(rawText) {
@@ -922,7 +812,7 @@ function rebuildDiscs(rawText) {
     );
 
 
-  // Empty input = empty sketch
+  // Empty text = empty sketch
 
   if (
     chars.length === 0
@@ -942,9 +832,7 @@ function rebuildDiscs(rawText) {
 
 
   let spacing =
-    radius
-    *
-    1.72;
+    radius * 1.72;
 
 
   let cols =
@@ -957,8 +845,7 @@ function rebuildDiscs(rawText) {
 
   let rows =
     ceil(
-      chars.length
-      /
+      chars.length /
       cols
     );
 
@@ -1046,13 +933,14 @@ function rebuildDiscs(rawText) {
 
         {
 
-          // Used for wall collision detection
+          // Used for wall detection
+
           label:
             "disc",
 
 
           // --------------------------------------
-          // BOUNCE
+          // PHYSICS
           // --------------------------------------
 
           restitution:
@@ -1098,6 +986,15 @@ function rebuildDiscs(rawText) {
 
       outlined:
         i % 2 === 1,
+
+
+      // --------------------------------------
+      // FILLED BALL STARTING COLOUR
+      // --------------------------------------
+
+      fillColor:
+        DISC_BLACK,
+
 
       textSize:
         radius
@@ -1222,8 +1119,6 @@ function getDiscRadius(count) {
   }
 
 
-  // 13–15 characters
-
   return base * 0.074;
 
 }
@@ -1252,9 +1147,7 @@ function drawDiscs() {
 
 
     let diameter =
-      d.radius
-      *
-      2;
+      d.radius * 2;
 
 
     let outlineW =
@@ -1262,8 +1155,7 @@ function drawDiscs() {
 
         4,
 
-        d.radius
-        *
+        d.radius *
         0.07
 
       );
@@ -1285,6 +1177,8 @@ function drawDiscs() {
 
     // ------------------------------------------------
     // OUTLINED DISC
+    //
+    // Never changes colour
     // ------------------------------------------------
 
     if (
@@ -1295,7 +1189,7 @@ function drawDiscs() {
 
 
       stroke(
-        FG_COLOR
+        OUTLINE_COLOR
       );
 
 
@@ -1314,8 +1208,10 @@ function drawDiscs() {
       noStroke();
 
 
+      // outlined letter stays BLACK
+
       fill(
-        FG_COLOR
+        OUTLINE_COLOR
       );
 
     }
@@ -1323,6 +1219,8 @@ function drawDiscs() {
 
     // ------------------------------------------------
     // FILLED DISC
+    //
+    // BLACK or WHITE depending on last vertical wall
     // ------------------------------------------------
 
     else {
@@ -1331,7 +1229,7 @@ function drawDiscs() {
 
 
       fill(
-        FG_COLOR
+        d.fillColor
       );
 
 
@@ -1342,7 +1240,7 @@ function drawDiscs() {
       );
 
 
-      // Letter always stays red
+      // Letter stays RED
 
       fill(
         LETTER_COLOR
@@ -1377,8 +1275,7 @@ function drawDiscs() {
 
       0,
 
-      d.radius
-      *
+      d.radius *
       LETTER_Y_OFFSET
 
     );
@@ -1413,8 +1310,7 @@ function createWalls() {
 
 
   let right =
-    width
-    -
+    width -
     safe.right;
 
 
@@ -1423,15 +1319,14 @@ function createWalls() {
 
 
   let bottom =
-    height
-    -
+    height -
     safe.bottom;
 
 
   // --------------------------------------------------
-  // TOP WALL
+  // TOP
   //
-  // NO colour change
+  // FILLED BALL → WHITE
   // --------------------------------------------------
 
   walls.push(
@@ -1439,20 +1334,17 @@ function createWalls() {
     Bodies.rectangle(
 
       (
-        left
-        +
+        left +
         right
       )
       *
       0.5,
 
-      top
-      -
+      top -
       t * 0.5,
 
       (
-        right
-        -
+        right -
         left
       )
       +
@@ -1482,9 +1374,9 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // BOTTOM WALL
+  // BOTTOM
   //
-  // NO colour change
+  // FILLED BALL → BLACK
   // --------------------------------------------------
 
   walls.push(
@@ -1492,20 +1384,17 @@ function createWalls() {
     Bodies.rectangle(
 
       (
-        left
-        +
+        left +
         right
       )
       *
       0.5,
 
-      bottom
-      +
+      bottom +
       t * 0.5,
 
       (
-        right
-        -
+        right -
         left
       )
       +
@@ -1535,22 +1424,20 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // LEFT WALL
+  // LEFT
   //
-  // LEFT = WHITE BG
+  // Nothing changes
   // --------------------------------------------------
 
   walls.push(
 
     Bodies.rectangle(
 
-      left
-      -
+      left -
       t * 0.5,
 
       (
-        top
-        +
+        top +
         bottom
       )
       *
@@ -1559,8 +1446,7 @@ function createWalls() {
       t,
 
       (
-        bottom
-        -
+        bottom -
         top
       )
       +
@@ -1588,22 +1474,20 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // RIGHT WALL
+  // RIGHT
   //
-  // RIGHT = RED BG
+  // Nothing changes
   // --------------------------------------------------
 
   walls.push(
 
     Bodies.rectangle(
 
-      right
-      +
+      right +
       t * 0.5,
 
       (
-        top
-        +
+        top +
         bottom
       )
       *
@@ -1612,8 +1496,7 @@ function createWalls() {
       t,
 
       (
-        bottom
-        -
+        bottom -
         top
       )
       +
@@ -1692,12 +1575,14 @@ function getSafeBounds() {
 
 
 // ====================================================
-// WALL COLLISION → BG CHANGE
+// EDGE COLLISION
 //
-// LEFT  = WHITE
-// RIGHT = RED
+// FILLED BALL:
+// TOP    → WHITE
+// BOTTOM → BLACK
 //
-// TOP + BOTTOM = NOTHING
+// OUTLINED BALL:
+// DOES NOT CHANGE
 // ====================================================
 
 function setupEdgeCollisions() {
@@ -1726,8 +1611,12 @@ function setupEdgeCollisions() {
           null;
 
 
+        let discBody =
+          null;
+
+
         // ------------------------------------------
-        // Disc hits wall
+        // FIND DISC + WALL
         // ------------------------------------------
 
         if (
@@ -1741,6 +1630,10 @@ function setupEdgeCollisions() {
           )
 
         ) {
+
+          discBody =
+            a;
+
 
           wall =
             b;
@@ -1760,6 +1653,10 @@ function setupEdgeCollisions() {
 
         ) {
 
+          discBody =
+            b;
+
+
           wall =
             a;
 
@@ -1767,7 +1664,8 @@ function setupEdgeCollisions() {
 
 
         if (
-          !wall
+          !wall ||
+          !discBody
         ) {
 
           continue;
@@ -1776,37 +1674,73 @@ function setupEdgeCollisions() {
 
 
         // ------------------------------------------
-        // LEFT WALL → WHITE
+        // FIND VISUAL DISC
+        // ------------------------------------------
+
+        let d =
+          discs.find(
+
+            item =>
+              item.body ===
+              discBody
+
+          );
+
+
+        if (
+          !d
+        ) {
+
+          continue;
+
+        }
+
+
+        // ------------------------------------------
+        // OUTLINED BALLS DO NOT CHANGE
+        // ------------------------------------------
+
+        if (
+          d.outlined
+        ) {
+
+          continue;
+
+        }
+
+
+        // ------------------------------------------
+        // TOP WALL → WHITE
         // ------------------------------------------
 
         if (
           wall.label ===
-          "wall-left"
+          "wall-top"
         ) {
 
-          currentBGColor =
-            BG_WHITE;
+          d.fillColor =
+            DISC_WHITE;
 
         }
 
 
         // ------------------------------------------
-        // RIGHT WALL → RED
+        // BOTTOM WALL → BLACK
         // ------------------------------------------
 
         else if (
           wall.label ===
-          "wall-right"
+          "wall-bottom"
         ) {
 
-          currentBGColor =
-            BG_RED;
+          d.fillColor =
+            DISC_BLACK;
 
         }
 
 
-        // TOP + BOTTOM:
-        // intentionally no colour change
+        // LEFT + RIGHT:
+        // intentionally do nothing
 
       }
 
@@ -1823,12 +1757,9 @@ function setupEdgeCollisions() {
 
 function updateGravity() {
 
-  let gx =
-    0;
+  let gx = 0;
 
-
-  let gy =
-    0;
+  let gy = 0;
 
 
   // --------------------------------------------------
@@ -1846,22 +1777,19 @@ function updateGravity() {
   ) {
 
     let diffGamma =
-      rawGamma
-      -
+      rawGamma -
       neutralGamma;
 
 
     let diffBeta =
-      rawBeta
-      -
+      rawBeta -
       neutralBeta;
 
 
     gx =
       constrain(
 
-        diffGamma
-        /
+        diffGamma /
         22,
 
         -1,
@@ -1874,8 +1802,7 @@ function updateGravity() {
     gy =
       constrain(
 
-        diffBeta
-        /
+        diffBeta /
         22,
 
         -1,
@@ -1888,7 +1815,7 @@ function updateGravity() {
 
 
   // --------------------------------------------------
-  // DESKTOP MOUSE
+  // DESKTOP MOUSE FALLBACK
   // --------------------------------------------------
 
   else if (
@@ -1898,8 +1825,7 @@ function updateGravity() {
     let nx =
 
       (
-        mouseX
-        -
+        mouseX -
         width * 0.5
       )
 
@@ -1913,8 +1839,7 @@ function updateGravity() {
     let ny =
 
       (
-        mouseY
-        -
+        mouseY -
         height * 0.5
       )
 
@@ -1945,12 +1870,8 @@ function updateGravity() {
 
   else {
 
-    gx =
-      0;
-
-
-    gy =
-      0;
+    gx = 0;
+    gy = 0;
 
   }
 
@@ -2021,7 +1942,7 @@ function handleOrientation(event) {
 
 
 // ====================================================
-// CALIBRATION
+// CALIBRATE
 // ====================================================
 
 function calibrateMotion() {
@@ -2043,12 +1964,9 @@ function calibrateMotion() {
     rawBeta;
 
 
-  world.gravity.x =
-    0;
+  world.gravity.x = 0;
 
-
-  world.gravity.y =
-    0;
+  world.gravity.y = 0;
 
 
   freezeDiscs();
@@ -2099,12 +2017,8 @@ async function toggleMotion() {
     );
 
 
-    world.gravity.x =
-      0;
-
-
-    world.gravity.y =
-      0;
+    world.gravity.x = 0;
+    world.gravity.y = 0;
 
 
     freezeDiscs();
@@ -2146,8 +2060,7 @@ async function toggleMotion() {
 
 
         if (
-          permission
-          !==
+          permission !==
           "granted"
         ) {
 
@@ -2231,7 +2144,7 @@ async function toggleMotion() {
 
 
 // ====================================================
-// FREEZE DISCS
+// FREEZE
 // ====================================================
 
 function freezeDiscs() {
@@ -2245,11 +2158,8 @@ function freezeDiscs() {
       d.body,
 
       {
-
         x: 0,
-
         y: 0
-
       }
 
     );
@@ -2281,8 +2191,7 @@ function isTouchDevice() {
 
     ||
 
-    navigator.maxTouchPoints
-    >
+    navigator.maxTouchPoints >
     0
 
   );
