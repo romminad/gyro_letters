@@ -12,64 +12,104 @@ let discs = [];
 let fontMain;
 
 
-// ----------------------------------------------------
-// PHONE MOTION
-// ----------------------------------------------------
-
-let rawGamma = 0;
-let rawBeta = 0;
-
-let neutralGamma = 0;
-let neutralBeta = 0;
-
-let motionEnabled = false;
-let hasOrientationData = false;
-let sensorStarted = false;
-
-
-// ----------------------------------------------------
-// UI
-// ----------------------------------------------------
-
-let canvas;
-
-let motionButton;
-let calibrateButton;
-let inputField;
-let updateButton;
-let resetButton;
-let uiHint;
-
-let uiVisible = true;
-let uiElements = [];
+// ====================================================
+// EASY CONTROLS
+// ====================================================
 
 
 // ----------------------------------------------------
 // COLOURS
 // ----------------------------------------------------
 
-const BG_COLOR = "#ff1a0d";
+// Colour used for letters inside BLACK circles
+const LETTER_COLOR = "#ff1a0d";
+
+// Circle / outline colour
 const FG_COLOR = "#000000";
 
 
 // ----------------------------------------------------
-// DISC SETTINGS
+// BACKGROUND PALETTE
+//
+// CHANGE / ADD COLOURS HERE
 // ----------------------------------------------------
 
-// Overall circle size
+const BG_COLORS = [
+  "#ff1a0d", // RED
+  "#000000", // BLACK
+  "#ffffff", // WHITE
+  "#808080"  // GREY
+];
+
+let bgColorIndex = 0;
+let currentBGColor = BG_COLORS[bgColorIndex];
+
+
+// ----------------------------------------------------
+// DISC SIZE
+// ----------------------------------------------------
+
 const SIZE_MULTIPLIER = 1.15;
 
-// Letter size INSIDE circle
+
+// ----------------------------------------------------
+// LETTER SIZE
+//
+// Increase this to make ONLY the letters bigger
+// ----------------------------------------------------
+
 const LETTER_SIZE_MULTIPLIER = 1.55;
 
-// Letter vertical position
-// negative = higher
-// positive = lower
+
+// ----------------------------------------------------
+// LETTER VERTICAL ALIGNMENT
+//
+// negative = up
+// positive = down
+// ----------------------------------------------------
+
 const LETTER_Y_OFFSET = 0.001;
 
 
 // ----------------------------------------------------
-// PHYSICS
+// PHYSICS FEEL
+// ----------------------------------------------------
+
+// BOUNCINESS between discs
+//
+// 0.30 = subtle
+// 0.42 = dynamic
+// 0.55 = more bouncy
+// 0.70 = rubbery
+
+const DISC_BOUNCE = 0.45;
+
+
+// Bounce against the screen edges
+
+const WALL_BOUNCE = 0.38;
+
+
+// Lower = keeps moving longer
+// Higher = settles faster
+
+const AIR_DRAG = 0.016;
+
+
+// ----------------------------------------------------
+// BACKGROUND CHANGE SPEED
+//
+// Stops several simultaneous collisions from
+// changing through all colours instantly.
+// ----------------------------------------------------
+
+const BG_CHANGE_COOLDOWN = 180;
+
+let lastBGChange = 0;
+
+
+// ----------------------------------------------------
+// SCREEN WALL
 // ----------------------------------------------------
 
 const WALL_THICKNESS = 140;
@@ -78,40 +118,87 @@ const WALL_THICKNESS = 140;
 // ----------------------------------------------------
 // SCREEN LIMITS
 //
-// Increase a number to move that wall inward.
+// Increase a number to move that edge inward.
 // ----------------------------------------------------
 
 const SAFE_BOUNDS_MOBILE = {
+
   left: 0,
+
   right: 0,
+
   top: 0,
+
   bottom: 10
+
 };
+
 
 const SAFE_BOUNDS_DESKTOP = {
+
   left: 18,
+
   right: 18,
+
   top: 18,
+
   bottom: 18
+
 };
 
 
-// ----------------------------------------------------
+// ====================================================
+// PHONE MOTION
+// ====================================================
+
+let rawGamma = 0;
+let rawBeta = 0;
+
+let neutralGamma = 0;
+let neutralBeta = 0;
+
+let motionEnabled = false;
+
+let hasOrientationData = false;
+
+let sensorStarted = false;
+
+
+// ====================================================
+// UI
+// ====================================================
+
+let canvas;
+
+let motionButton;
+let calibrateButton;
+let inputField;
+let updateButton;
+let resetButton;
+
+let uiHint;
+
+let uiVisible = true;
+
+let uiElements = [];
+
+
+// ====================================================
 // PRELOAD
-// ----------------------------------------------------
+// ====================================================
 
 function preload() {
 
-  // Typeface used inside the circles
   fontMain = loadFont(
     "QuasarRoundedUnlicensedTrialVersion-120.otf"
   );
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
 // SETUP
-// ----------------------------------------------------
+// ====================================================
 
 function setup() {
 
@@ -120,19 +207,28 @@ function setup() {
     windowHeight
   );
 
+
   pixelDensity(1);
 
+
   textFont(fontMain);
-  textAlign(CENTER, CENTER);
+
+  textAlign(
+    CENTER,
+    CENTER
+  );
+
 
   noStroke();
 
 
   // --------------------------------------------------
-  // Make custom double tap more reliable on mobile
+  // Improve double tap on mobile
   // --------------------------------------------------
 
-  canvas.elt.style.touchAction = "none";
+  canvas.elt.style.touchAction =
+    "none";
+
 
   canvas.elt.style.webkitTapHighlightColor =
     "transparent";
@@ -142,31 +238,81 @@ function setup() {
   // MATTER
   // --------------------------------------------------
 
-  engine = Engine.create();
+  engine =
+    Engine.create();
 
-  world = engine.world;
 
-  world.gravity.scale = 0.0014;
+  world =
+    engine.world;
 
-  world.gravity.x = 0;
-  world.gravity.y = 0;
+
+  world.gravity.scale =
+    0.0014;
+
+
+  world.gravity.x =
+    0;
+
+
+  world.gravity.y =
+    0;
 
 
   createWalls();
 
+
+  // Detect disc → edge collisions
+
+  setupEdgeCollisions();
+
+
+  // UI
+
   createUI();
+
+
+  // Double tap hide/show UI
 
   setupUIToggle();
 
 
   // Initial example
-  rebuildDiscs("TS2A8");
+
+  rebuildDiscs(
+    "TS2A8"
+  );
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
+// DRAW
+// ====================================================
+
+function draw() {
+
+  background(
+    currentBGColor
+  );
+
+
+  updateGravity();
+
+
+  Engine.update(
+    engine,
+    1000 / 60
+  );
+
+
+  drawDiscs();
+
+}
+
+
+// ====================================================
 // UI
-// ----------------------------------------------------
+// ====================================================
 
 function createUI() {
 
@@ -177,18 +323,22 @@ function createUI() {
   // PHONE MOTION
   // --------------------------------------------------
 
-  motionButton = createButton(
-    "Phone Motion Off"
-  );
+  motionButton =
+    createButton(
+      "Phone Motion Off"
+    );
+
 
   motionButton.position(
     25,
     24
   );
 
+
   motionButton.mousePressed(
     toggleMotion
   );
+
 
   motionButton.addClass(
     "ui-button"
@@ -199,18 +349,22 @@ function createUI() {
   // CALIBRATE
   // --------------------------------------------------
 
-  calibrateButton = createButton(
-    "Calibrate"
-  );
+  calibrateButton =
+    createButton(
+      "Calibrate"
+    );
+
 
   calibrateButton.position(
     25,
     68
   );
 
+
   calibrateButton.mousePressed(
     calibrateMotion
   );
+
 
   calibrateButton.addClass(
     "ui-button"
@@ -221,22 +375,27 @@ function createUI() {
   // INPUT
   // --------------------------------------------------
 
-  inputField = createInput("");
+  inputField =
+    createInput("");
+
 
   inputField.position(
     25,
     112
   );
 
+
   inputField.attribute(
     "maxlength",
     "15"
   );
 
+
   inputField.attribute(
     "placeholder",
     "Insert text"
   );
+
 
   inputField.addClass(
     "ui-input"
@@ -247,14 +406,17 @@ function createUI() {
   // UPDATE
   // --------------------------------------------------
 
-  updateButton = createButton(
-    "Update"
-  );
+  updateButton =
+    createButton(
+      "Update"
+    );
+
 
   updateButton.position(
     25,
     156
   );
+
 
   updateButton.mousePressed(
     () => {
@@ -266,6 +428,7 @@ function createUI() {
     }
   );
 
+
   updateButton.addClass(
     "ui-button"
   );
@@ -275,30 +438,53 @@ function createUI() {
   // RESET
   // --------------------------------------------------
 
-  resetButton = createButton(
-    "Reset"
-  );
+  resetButton =
+    createButton(
+      "Reset"
+    );
+
 
   resetButton.position(
     132,
     156
   );
 
+
   resetButton.mousePressed(
     () => {
 
-      // Clear text field
+      // Clear input
+
       inputField.value("");
 
-      // Remove every disc
+
+      // Remove all circles
+
       clearDiscs();
 
-      // Stop current gravity
-      world.gravity.x = 0;
-      world.gravity.y = 0;
+
+      // Stop gravity
+
+      world.gravity.x =
+        0;
+
+      world.gravity.y =
+        0;
+
+
+      // Reset background to first colour
+
+      bgColorIndex =
+        0;
+
+      currentBGColor =
+        BG_COLORS[
+          bgColorIndex
+        ];
 
     }
   );
+
 
   resetButton.addClass(
     "ui-button"
@@ -309,9 +495,11 @@ function createUI() {
   // DOUBLE TAP NOTE
   // --------------------------------------------------
 
-  uiHint = createDiv(
-    "Double Tap UI on/off"
-  );
+  uiHint =
+    createDiv(
+      "Double Tap UI on/off"
+    );
+
 
   uiHint.addClass(
     "ui-hint"
@@ -319,25 +507,31 @@ function createUI() {
 
 
   // --------------------------------------------------
-  // STORE EVERYTHING THAT SHOULD HIDE
+  // EVERYTHING THAT HIDES
   // --------------------------------------------------
 
   uiElements = [
 
     motionButton,
+
     calibrateButton,
+
     inputField,
+
     updateButton,
+
     resetButton,
+
     uiHint
 
   ];
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
 // UI STYLES
-// ----------------------------------------------------
+// ====================================================
 
 function installUIStyles() {
 
@@ -349,9 +543,10 @@ function installUIStyles() {
 
   style.innerHTML = `
 
-    /* -----------------------------------------
+
+    /* =========================================
        UI FONT
-    ----------------------------------------- */
+    ========================================= */
 
     @font-face {
 
@@ -371,9 +566,9 @@ function installUIStyles() {
     }
 
 
-    /* -----------------------------------------
+    /* =========================================
        SHARED
-    ----------------------------------------- */
+    ========================================= */
 
     .ui-button,
     .ui-input,
@@ -392,9 +587,9 @@ function installUIStyles() {
     }
 
 
-    /* -----------------------------------------
-       BUTTONS
-    ----------------------------------------- */
+    /* =========================================
+       BUTTON
+    ========================================= */
 
     .ui-button {
 
@@ -451,9 +646,11 @@ function installUIStyles() {
     }
 
 
-    /* -----------------------------------------
+    /* =========================================
        INPUT
-    ----------------------------------------- */
+       
+       RED RECTANGLE + BLACK OUTLINE
+    ========================================= */
 
     .ui-input {
 
@@ -466,20 +663,20 @@ function installUIStyles() {
       padding:
         7px 11px;
 
+      background:
+        ${LETTER_COLOR};
+
+      color:
+        #000000;
+
       border:
-        0;
+        2px solid #000000;
 
       border-radius:
         0;
 
       outline:
         0;
-
-      background:
-        #ffffff;
-
-      color:
-        #000000;
 
       font-size:
         19px;
@@ -510,9 +707,9 @@ function installUIStyles() {
     }
 
 
-    /* -----------------------------------------
-       DOUBLE TAP HINT
-    ----------------------------------------- */
+    /* =========================================
+       DOUBLE TAP MESSAGE
+    ========================================= */
 
     .ui-hint {
 
@@ -537,9 +734,9 @@ function installUIStyles() {
     }
 
 
-    /* -----------------------------------------
+    /* =========================================
        MOBILE
-    ----------------------------------------- */
+    ========================================= */
 
     @media (max-width: 600px) {
 
@@ -592,36 +789,43 @@ function installUIStyles() {
   document.head.appendChild(
     style
   );
+
 }
 
 
-// ----------------------------------------------------
-// IMPROVED DOUBLE TAP UI
-// ----------------------------------------------------
+// ====================================================
+// DOUBLE TAP UI
+// ====================================================
 
 function setupUIToggle() {
 
-  let lastTapTime = 0;
+  let lastTapTime =
+    0;
 
-  let lastTapX = 0;
-  let lastTapY = 0;
+
+  let lastTapX =
+    0;
+
+
+  let lastTapY =
+    0;
 
 
   // --------------------------------------------------
   // DOUBLE TAP SETTINGS
   //
-  // Increase TIME if you want slower taps accepted.
-  // Increase DISTANCE if taps can be further apart.
+  // Increase TIME if you want slower taps accepted
+  //
+  // Increase DISTANCE if taps can be further apart
   // --------------------------------------------------
 
-  const DOUBLE_TAP_TIME = 450;
+  const DOUBLE_TAP_TIME =
+    450;
 
-  const DOUBLE_TAP_DISTANCE = 80;
 
+  const DOUBLE_TAP_DISTANCE =
+    80;
 
-  // --------------------------------------------------
-  // POINTERUP works with phone + desktop
-  // --------------------------------------------------
 
   canvas.elt.addEventListener(
 
@@ -634,7 +838,9 @@ function setupUIToggle() {
 
 
       let timeDifference =
-        now - lastTapTime;
+        now
+        -
+        lastTapTime;
 
 
       let dx =
@@ -651,14 +857,16 @@ function setupUIToggle() {
 
       let distance =
         Math.sqrt(
+
           dx * dx
           +
           dy * dy
+
         );
 
 
       // ------------------------------------------------
-      // DOUBLE TAP DETECTED
+      // DOUBLE TAP
       // ------------------------------------------------
 
       if (
@@ -679,15 +887,16 @@ function setupUIToggle() {
 
         event.preventDefault();
 
+
         toggleUI();
 
 
-        // Reset so a third tap
-        // doesn't instantly toggle again
+        lastTapTime =
+          0;
 
-        lastTapTime = 0;
 
         return;
+
       }
 
 
@@ -709,12 +918,13 @@ function setupUIToggle() {
     }
 
   );
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
 // SHOW / HIDE UI
-// ----------------------------------------------------
+// ====================================================
 
 function toggleUI() {
 
@@ -741,36 +951,13 @@ function toggleUI() {
     }
 
   }
+
 }
 
 
-// ----------------------------------------------------
-// DRAW
-// ----------------------------------------------------
-
-function draw() {
-
-  background(
-    BG_COLOR
-  );
-
-
-  updateGravity();
-
-
-  Engine.update(
-    engine,
-    1000 / 60
-  );
-
-
-  drawDiscs();
-}
-
-
-// ----------------------------------------------------
+// ====================================================
 // BUILD DISCS
-// ----------------------------------------------------
+// ====================================================
 
 function rebuildDiscs(rawText) {
 
@@ -783,12 +970,14 @@ function rebuildDiscs(rawText) {
     );
 
 
-  // Empty input = empty sketch
+  // Empty text = empty sketch
+
   if (
     chars.length === 0
   ) {
 
     return;
+
   }
 
 
@@ -801,7 +990,9 @@ function rebuildDiscs(rawText) {
 
 
   let spacing =
-    radius * 1.72;
+    radius
+    *
+    1.72;
 
 
   let cols =
@@ -822,7 +1013,9 @@ function rebuildDiscs(rawText) {
 
   let startX =
     width * 0.5
+
     -
+
     (
       (cols - 1)
       *
@@ -834,7 +1027,9 @@ function rebuildDiscs(rawText) {
 
   let startY =
     height * 0.5
+
     -
+
     (
       (rows - 1)
       *
@@ -862,18 +1057,32 @@ function rebuildDiscs(rawText) {
 
     let x =
       startX
+
       +
+
       col * spacing
+
       +
-      random(-8, 8);
+
+      random(
+        -8,
+        8
+      );
 
 
     let y =
       startY
+
       +
+
       row * spacing
+
       +
-      random(-8, 8);
+
+      random(
+        -8,
+        8
+      );
 
 
     let body =
@@ -885,21 +1094,32 @@ function rebuildDiscs(rawText) {
 
         {
 
+          // IMPORTANT:
+          // Used to detect edge collisions
+
+          label:
+            "disc",
+
+
           // --------------------------------------
           // BOUNCINESS
           // --------------------------------------
 
           restitution:
-            0.28,
+            DISC_BOUNCE,
+
 
           friction:
             0.04,
 
+
           frictionStatic:
-            0.25,
+            0.22,
+
 
           frictionAir:
-            0.025,
+            AIR_DRAG,
+
 
           density:
             0.0014
@@ -935,13 +1155,15 @@ function rebuildDiscs(rawText) {
         LETTER_SIZE_MULTIPLIER
 
     });
+
   }
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
 // CLEAR DISCS
-// ----------------------------------------------------
+// ====================================================
 
 function clearDiscs() {
 
@@ -953,16 +1175,19 @@ function clearDiscs() {
       world,
       d.body
     );
+
   }
 
 
-  discs = [];
+  discs =
+    [];
+
 }
 
 
-// ----------------------------------------------------
-// TEXT CLEANUP
-// ----------------------------------------------------
+// ====================================================
+// TEXT
+// ====================================================
 
 function sanitizeText(value) {
 
@@ -986,12 +1211,13 @@ function sanitizeText(value) {
       0,
       15
     );
+
 }
 
 
-// ----------------------------------------------------
-// RESPONSIVE DISC SIZE
-// ----------------------------------------------------
+// ====================================================
+// DISC SIZE
+// ====================================================
 
 function getDiscRadius(count) {
 
@@ -1007,6 +1233,7 @@ function getDiscRadius(count) {
   ) {
 
     return base * 0.12;
+
   }
 
 
@@ -1015,6 +1242,7 @@ function getDiscRadius(count) {
   ) {
 
     return base * 0.108;
+
   }
 
 
@@ -1023,6 +1251,7 @@ function getDiscRadius(count) {
   ) {
 
     return base * 0.098;
+
   }
 
 
@@ -1031,6 +1260,7 @@ function getDiscRadius(count) {
   ) {
 
     return base * 0.088;
+
   }
 
 
@@ -1039,18 +1269,20 @@ function getDiscRadius(count) {
   ) {
 
     return base * 0.080;
+
   }
 
 
   // 13–15 characters
 
   return base * 0.074;
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
 // DRAW DISCS
-// ----------------------------------------------------
+// ====================================================
 
 function drawDiscs() {
 
@@ -1071,13 +1303,20 @@ function drawDiscs() {
 
 
     let diameter =
-      d.radius * 2;
+      d.radius
+      *
+      2;
 
 
     let outlineW =
       max(
+
         4,
-        d.radius * 0.07
+
+        d.radius
+        *
+        0.07
+
       );
 
 
@@ -1105,9 +1344,11 @@ function drawDiscs() {
 
       noFill();
 
+
       stroke(
         FG_COLOR
       );
+
 
       strokeWeight(
         outlineW
@@ -1122,6 +1363,7 @@ function drawDiscs() {
 
 
       noStroke();
+
 
       fill(
         FG_COLOR
@@ -1138,6 +1380,7 @@ function drawDiscs() {
 
       noStroke();
 
+
       fill(
         FG_COLOR
       );
@@ -1150,8 +1393,11 @@ function drawDiscs() {
       );
 
 
+      // IMPORTANT:
+      // Letter stays RED even if background changes
+
       fill(
-        BG_COLOR
+        LETTER_COLOR
       );
 
     }
@@ -1191,13 +1437,15 @@ function drawDiscs() {
 
 
     pop();
+
   }
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
 // WALLS
-// ----------------------------------------------------
+// ====================================================
 
 function createWalls() {
 
@@ -1241,16 +1489,21 @@ function createWalls() {
     Bodies.rectangle(
 
       (
-        left + right
+        left
+        +
+        right
       )
-      * 0.5,
+      *
+      0.5,
 
       top
       -
       t * 0.5,
 
       (
-        right - left
+        right
+        -
+        left
       )
       +
       t * 2,
@@ -1259,11 +1512,14 @@ function createWalls() {
 
       {
 
+        label:
+          "wall",
+
         isStatic:
           true,
 
         restitution:
-          0.18,
+          WALL_BOUNCE,
 
         friction:
           0.05
@@ -1284,16 +1540,21 @@ function createWalls() {
     Bodies.rectangle(
 
       (
-        left + right
+        left
+        +
+        right
       )
-      * 0.5,
+      *
+      0.5,
 
       bottom
       +
       t * 0.5,
 
       (
-        right - left
+        right
+        -
+        left
       )
       +
       t * 2,
@@ -1302,11 +1563,14 @@ function createWalls() {
 
       {
 
+        label:
+          "wall",
+
         isStatic:
           true,
 
         restitution:
-          0.18,
+          WALL_BOUNCE,
 
         friction:
           0.05
@@ -1331,25 +1595,33 @@ function createWalls() {
       t * 0.5,
 
       (
-        top + bottom
+        top
+        +
+        bottom
       )
-      * 0.5,
+      *
+      0.5,
 
       t,
 
       (
-        bottom - top
+        bottom
+        -
+        top
       )
       +
       t * 2,
 
       {
 
+        label:
+          "wall",
+
         isStatic:
           true,
 
         restitution:
-          0.18,
+          WALL_BOUNCE,
 
         friction:
           0.05
@@ -1374,25 +1646,33 @@ function createWalls() {
       t * 0.5,
 
       (
-        top + bottom
+        top
+        +
+        bottom
       )
-      * 0.5,
+      *
+      0.5,
 
       t,
 
       (
-        bottom - top
+        bottom
+        -
+        top
       )
       +
       t * 2,
 
       {
 
+        label:
+          "wall",
+
         isStatic:
           true,
 
         restitution:
-          0.18,
+          WALL_BOUNCE,
 
         friction:
           0.05
@@ -1408,12 +1688,13 @@ function createWalls() {
     world,
     walls
   );
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
 // CLEAR WALLS
-// ----------------------------------------------------
+// ====================================================
 
 function clearWalls() {
 
@@ -1425,16 +1706,19 @@ function clearWalls() {
       world,
       wall
     );
+
   }
 
 
-  walls = [];
+  walls =
+    [];
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
 // SCREEN BOUNDS
-// ----------------------------------------------------
+// ====================================================
 
 function getSafeBounds() {
 
@@ -1443,21 +1727,151 @@ function getSafeBounds() {
   ) {
 
     return SAFE_BOUNDS_MOBILE;
+
   }
 
 
   return SAFE_BOUNDS_DESKTOP;
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
+// EDGE COLLISION → BACKGROUND CHANGE
+// ====================================================
+
+function setupEdgeCollisions() {
+
+  Matter.Events.on(
+
+    engine,
+
+    "collisionStart",
+
+    function(event) {
+
+      let now =
+        millis();
+
+
+      // ------------------------------------------------
+      // Don't cycle super quickly when many discs
+      // hit an edge together
+      // ------------------------------------------------
+
+      if (
+
+        now
+        -
+        lastBGChange
+
+        <
+
+        BG_CHANGE_COOLDOWN
+
+      ) {
+
+        return;
+
+      }
+
+
+      for (
+        let pair of event.pairs
+      ) {
+
+        let a =
+          pair.bodyA;
+
+
+        let b =
+          pair.bodyB;
+
+
+        let hitEdge =
+
+          (
+            a.label === "disc"
+            &&
+            b.label === "wall"
+          )
+
+          ||
+
+          (
+            a.label === "wall"
+            &&
+            b.label === "disc"
+          );
+
+
+        if (
+          hitEdge
+        ) {
+
+          changeBackgroundColor();
+
+
+          lastBGChange =
+            now;
+
+
+          break;
+
+        }
+
+      }
+
+    }
+
+  );
+
+}
+
+
+// ====================================================
+// CHANGE BACKGROUND
+// ====================================================
+
+function changeBackgroundColor() {
+
+  bgColorIndex++;
+
+
+  if (
+
+    bgColorIndex
+    >=
+    BG_COLORS.length
+
+  ) {
+
+    bgColorIndex =
+      0;
+
+  }
+
+
+  currentBGColor =
+    BG_COLORS[
+      bgColorIndex
+    ];
+
+}
+
+
+// ====================================================
 // GRAVITY
-// ----------------------------------------------------
+// ====================================================
 
 function updateGravity() {
 
-  let gx = 0;
-  let gy = 0;
+  let gx =
+    0;
+
+
+  let gy =
+    0;
 
 
   // --------------------------------------------------
@@ -1465,9 +1879,13 @@ function updateGravity() {
   // --------------------------------------------------
 
   if (
+
     motionEnabled
+
     &&
+
     hasOrientationData
+
   ) {
 
     let diffGamma =
@@ -1484,27 +1902,36 @@ function updateGravity() {
 
     gx =
       constrain(
-        diffGamma / 22,
+
+        diffGamma
+        /
+        22,
+
         -1,
+
         1
+
       );
 
 
-    // Tilt down = gravity down
-    // Tilt up = gravity up
-
     gy =
       constrain(
-        diffBeta / 22,
+
+        diffBeta
+        /
+        22,
+
         -1,
+
         1
+
       );
 
   }
 
 
   // --------------------------------------------------
-  // DESKTOP MOUSE FALLBACK
+  // DESKTOP MOUSE
   // --------------------------------------------------
 
   else if (
@@ -1512,24 +1939,30 @@ function updateGravity() {
   ) {
 
     let nx =
+
       (
         mouseX
         -
         width * 0.5
       )
+
       /
+
       (
         width * 0.5
       );
 
 
     let ny =
+
       (
         mouseY
         -
         height * 0.5
       )
+
       /
+
       (
         height * 0.5
       );
@@ -1553,48 +1986,62 @@ function updateGravity() {
   }
 
 
-  // --------------------------------------------------
-  // PHONE MOTION OFF
-  // --------------------------------------------------
-
   else {
 
-    gx = 0;
-    gy = 0;
+    gx =
+      0;
+
+
+    gy =
+      0;
 
   }
 
 
   world.gravity.x =
     lerp(
+
       world.gravity.x,
+
       gx,
+
       0.14
+
     );
 
 
   world.gravity.y =
     lerp(
+
       world.gravity.y,
+
       gy,
+
       0.14
+
     );
+
 }
 
 
-// ----------------------------------------------------
-// DEVICE ORIENTATION
-// ----------------------------------------------------
+// ====================================================
+// ORIENTATION
+// ====================================================
 
 function handleOrientation(event) {
 
   if (
+
     event.gamma === null
+
     ||
+
     event.beta === null
+
   ) {
 
     return;
+
   }
 
 
@@ -1608,12 +2055,13 @@ function handleOrientation(event) {
 
   hasOrientationData =
     true;
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
 // CALIBRATE
-// ----------------------------------------------------
+// ====================================================
 
 function calibrateMotion() {
 
@@ -1622,6 +2070,7 @@ function calibrateMotion() {
   ) {
 
     return;
+
   }
 
 
@@ -1633,8 +2082,12 @@ function calibrateMotion() {
     rawBeta;
 
 
-  world.gravity.x = 0;
-  world.gravity.y = 0;
+  world.gravity.x =
+    0;
+
+
+  world.gravity.y =
+    0;
 
 
   freezeDiscs();
@@ -1658,12 +2111,13 @@ function calibrateMotion() {
     800
 
   );
+
 }
 
 
-// ----------------------------------------------------
-// PHONE MOTION ON / OFF
-// ----------------------------------------------------
+// ====================================================
+// PHONE MOTION
+// ====================================================
 
 async function toggleMotion() {
 
@@ -1684,14 +2138,19 @@ async function toggleMotion() {
     );
 
 
-    world.gravity.x = 0;
-    world.gravity.y = 0;
+    world.gravity.x =
+      0;
+
+
+    world.gravity.y =
+      0;
 
 
     freezeDiscs();
 
 
     return;
+
   }
 
 
@@ -1720,6 +2179,7 @@ async function toggleMotion() {
       ) {
 
         let permission =
+
           await
           DeviceOrientationEvent.requestPermission();
 
@@ -1734,19 +2194,26 @@ async function toggleMotion() {
             "Motion Denied"
           );
 
+
           return;
+
         }
+
       }
 
 
       window.addEventListener(
+
         "deviceorientation",
+
         handleOrientation
+
       );
 
 
       sensorStarted =
         true;
+
     }
 
 
@@ -1798,12 +2265,13 @@ async function toggleMotion() {
     );
 
   }
+
 }
 
 
-// ----------------------------------------------------
-// FREEZE DISCS
-// ----------------------------------------------------
+// ====================================================
+// FREEZE
+// ====================================================
 
 function freezeDiscs() {
 
@@ -1816,24 +2284,34 @@ function freezeDiscs() {
       d.body,
 
       {
-        x: 0,
-        y: 0
+
+        x:
+          0,
+
+        y:
+          0
+
       }
 
     );
 
 
     Body.setAngularVelocity(
+
       d.body,
+
       0
+
     );
+
   }
+
 }
 
 
-// ----------------------------------------------------
-// TOUCH DEVICE CHECK
-// ----------------------------------------------------
+// ====================================================
+// TOUCH DEVICE
+// ====================================================
 
 function isTouchDevice() {
 
@@ -1849,12 +2327,13 @@ function isTouchDevice() {
     0
 
   );
+
 }
 
 
-// ----------------------------------------------------
+// ====================================================
 // RESIZE
-// ----------------------------------------------------
+// ====================================================
 
 function windowResized() {
 
@@ -1865,4 +2344,5 @@ function windowResized() {
 
 
   createWalls();
+
 }
