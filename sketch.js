@@ -24,15 +24,12 @@ let fontMain;
 // FIXED BACKGROUND
 const BG_COLOR = "#ff1a0d";
 
-// FILLED BALL STATES
+// CIRCLE COLOUR STATES
 const DISC_BLACK = "#000000";
 const DISC_WHITE = "#ffffff";
 
-// LETTER INSIDE FILLED BALL
+// LETTER INSIDE FILLED CIRCLE
 const LETTER_COLOR = "#ff1a0d";
-
-// OUTLINED BALL + LETTER
-const OUTLINE_COLOR = "#000000";
 
 
 // ----------------------------------------------------
@@ -67,7 +64,7 @@ const LETTER_Y_OFFSET = 0.001;
 // Increase these for more bounce
 // ----------------------------------------------------
 
-const DISC_BOUNCE = 0.45;
+const DISC_BOUNCE = 0.65;
 
 const WALL_BOUNCE = 0.40;
 
@@ -213,18 +210,14 @@ function setup() {
 
 function draw() {
 
-  // BG ALWAYS RED
   background(BG_COLOR);
 
-
   updateGravity();
-
 
   Engine.update(
     engine,
     1000 / 60
   );
-
 
   drawDiscs();
 
@@ -516,7 +509,6 @@ function installUIStyles() {
 
     /* =========================================
        INPUT
-       
        RED BOX + BLACK OUTLINE
     ========================================= */
 
@@ -673,13 +665,6 @@ function setupUIToggle() {
   let lastTapY = 0;
 
 
-  // --------------------------------------------------
-  // DOUBLE TAP SETTINGS
-  //
-  // Increase TIME to allow slower taps
-  // Increase DISTANCE to allow taps further apart
-  // --------------------------------------------------
-
   const DOUBLE_TAP_TIME = 450;
 
   const DOUBLE_TAP_DISTANCE = 80;
@@ -745,10 +730,6 @@ function setupUIToggle() {
       }
 
 
-      // ------------------------------------------------
-      // STORE FIRST TAP
-      // ------------------------------------------------
-
       lastTapTime = now;
 
       lastTapX =
@@ -811,8 +792,6 @@ function rebuildDiscs(rawText) {
       rawText
     );
 
-
-  // Empty text = empty sketch
 
   if (
     chars.length === 0
@@ -933,15 +912,10 @@ function rebuildDiscs(rawText) {
 
         {
 
-          // Used for wall detection
-
+          // Used for edge collision detection
           label:
             "disc",
 
-
-          // --------------------------------------
-          // PHYSICS
-          // --------------------------------------
 
           restitution:
             DISC_BOUNCE,
@@ -989,10 +963,13 @@ function rebuildDiscs(rawText) {
 
 
       // --------------------------------------
-      // FILLED BALL STARTING COLOUR
+      // EVERY CIRCLE STARTS BLACK
+      //
+      // TOP    → WHITE
+      // BOTTOM → BLACK
       // --------------------------------------
 
-      fillColor:
+      edgeColor:
         DISC_BLACK,
 
 
@@ -1178,7 +1155,11 @@ function drawDiscs() {
     // ------------------------------------------------
     // OUTLINED DISC
     //
-    // Never changes colour
+    // TOP:
+    // white outline + white letter
+    //
+    // BOTTOM:
+    // black outline + black letter
     // ------------------------------------------------
 
     if (
@@ -1189,7 +1170,7 @@ function drawDiscs() {
 
 
       stroke(
-        OUTLINE_COLOR
+        d.edgeColor
       );
 
 
@@ -1208,10 +1189,10 @@ function drawDiscs() {
       noStroke();
 
 
-      // outlined letter stays BLACK
+      // letter matches outline
 
       fill(
-        OUTLINE_COLOR
+        d.edgeColor
       );
 
     }
@@ -1220,7 +1201,13 @@ function drawDiscs() {
     // ------------------------------------------------
     // FILLED DISC
     //
-    // BLACK or WHITE depending on last vertical wall
+    // TOP:
+    // white fill
+    //
+    // BOTTOM:
+    // black fill
+    //
+    // letter remains RED
     // ------------------------------------------------
 
     else {
@@ -1229,7 +1216,7 @@ function drawDiscs() {
 
 
       fill(
-        d.fillColor
+        d.edgeColor
       );
 
 
@@ -1239,8 +1226,6 @@ function drawDiscs() {
         diameter
       );
 
-
-      // Letter stays RED
 
       fill(
         LETTER_COLOR
@@ -1325,8 +1310,7 @@ function createWalls() {
 
   // --------------------------------------------------
   // TOP
-  //
-  // FILLED BALL → WHITE
+  // ALL CIRCLES → WHITE
   // --------------------------------------------------
 
   walls.push(
@@ -1375,8 +1359,7 @@ function createWalls() {
 
   // --------------------------------------------------
   // BOTTOM
-  //
-  // FILLED BALL → BLACK
+  // ALL CIRCLES → BLACK
   // --------------------------------------------------
 
   walls.push(
@@ -1425,8 +1408,7 @@ function createWalls() {
 
   // --------------------------------------------------
   // LEFT
-  //
-  // Nothing changes
+  // no colour change
   // --------------------------------------------------
 
   walls.push(
@@ -1475,8 +1457,7 @@ function createWalls() {
 
   // --------------------------------------------------
   // RIGHT
-  //
-  // Nothing changes
+  // no colour change
   // --------------------------------------------------
 
   walls.push(
@@ -1577,12 +1558,12 @@ function getSafeBounds() {
 // ====================================================
 // EDGE COLLISION
 //
-// FILLED BALL:
+// ANY CIRCLE:
+//
 // TOP    → WHITE
 // BOTTOM → BLACK
 //
-// OUTLINED BALL:
-// DOES NOT CHANGE
+// LEFT + RIGHT → NOTHING
 // ====================================================
 
 function setupEdgeCollisions() {
@@ -1697,19 +1678,6 @@ function setupEdgeCollisions() {
 
 
         // ------------------------------------------
-        // OUTLINED BALLS DO NOT CHANGE
-        // ------------------------------------------
-
-        if (
-          d.outlined
-        ) {
-
-          continue;
-
-        }
-
-
-        // ------------------------------------------
         // TOP WALL → WHITE
         // ------------------------------------------
 
@@ -1718,7 +1686,7 @@ function setupEdgeCollisions() {
           "wall-top"
         ) {
 
-          d.fillColor =
+          d.edgeColor =
             DISC_WHITE;
 
         }
@@ -1733,14 +1701,14 @@ function setupEdgeCollisions() {
           "wall-bottom"
         ) {
 
-          d.fillColor =
+          d.edgeColor =
             DISC_BLACK;
 
         }
 
 
         // LEFT + RIGHT:
-        // intentionally do nothing
+        // deliberately do nothing
 
       }
 
@@ -1758,7 +1726,6 @@ function setupEdgeCollisions() {
 function updateGravity() {
 
   let gx = 0;
-
   let gy = 0;
 
 
@@ -1815,7 +1782,7 @@ function updateGravity() {
 
 
   // --------------------------------------------------
-  // DESKTOP MOUSE FALLBACK
+  // DESKTOP MOUSE
   // --------------------------------------------------
 
   else if (
@@ -1965,7 +1932,6 @@ function calibrateMotion() {
 
 
   world.gravity.x = 0;
-
   world.gravity.y = 0;
 
 
