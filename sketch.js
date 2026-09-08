@@ -21,32 +21,30 @@ let fontMain;
 // COLOURS
 // ----------------------------------------------------
 
-// Colour used for letters inside BLACK circles
-const LETTER_COLOR = "#ff1a0d";
-
-// Circle / outline colour
+// BLACK circles + outlines
 const FG_COLOR = "#000000";
 
+// RED letters inside filled circles
+const LETTER_COLOR = "#ff1a0d";
+
 
 // ----------------------------------------------------
-// BACKGROUND PALETTE
+// BACKGROUND COLOURS
 //
-// CHANGE / ADD COLOURS HERE
+// CHANGE THESE HERE
 // ----------------------------------------------------
 
-const BG_COLORS = [
-  "#ff1a0d", // RED
-  "#000000", // BLACK
-  "#ffffff", // WHITE
-  "#808080"  // GREY
-];
+const BG_RED = "#ff1a0d";
 
-let bgColorIndex = 0;
-let currentBGColor = BG_COLORS[bgColorIndex];
+const BG_WHITE = "#ffffff";
+
+
+// Sketch starts RED
+let currentBGColor = BG_RED;
 
 
 // ----------------------------------------------------
-// DISC SIZE
+// CIRCLE SIZE
 // ----------------------------------------------------
 
 const SIZE_MULTIPLIER = 1.15;
@@ -55,61 +53,41 @@ const SIZE_MULTIPLIER = 1.15;
 // ----------------------------------------------------
 // LETTER SIZE
 //
-// Increase this to make ONLY the letters bigger
+// Increase this to make ONLY letters bigger
 // ----------------------------------------------------
 
 const LETTER_SIZE_MULTIPLIER = 1.55;
 
 
 // ----------------------------------------------------
-// LETTER VERTICAL ALIGNMENT
+// LETTER VERTICAL POSITION
 //
-// negative = up
-// positive = down
+// negative = move up
+// positive = move down
 // ----------------------------------------------------
 
 const LETTER_Y_OFFSET = 0.001;
 
 
 // ----------------------------------------------------
-// PHYSICS FEEL
+// BOUNCE / PHYSICS
+//
+// THESE ARE THE MAIN VALUES TO PLAY WITH
 // ----------------------------------------------------
 
-// BOUNCINESS between discs
-//
-// 0.30 = subtle
-// 0.42 = dynamic
-// 0.55 = more bouncy
-// 0.70 = rubbery
-
+// Circle-to-circle bounce
 const DISC_BOUNCE = 0.45;
 
-
-// Bounce against the screen edges
-
-const WALL_BOUNCE = 0.38;
-
+// Bounce against screen edges
+const WALL_BOUNCE = 0.40;
 
 // Lower = keeps moving longer
 // Higher = settles faster
-
 const AIR_DRAG = 0.016;
 
 
 // ----------------------------------------------------
-// BACKGROUND CHANGE SPEED
-//
-// Stops several simultaneous collisions from
-// changing through all colours instantly.
-// ----------------------------------------------------
-
-const BG_CHANGE_COOLDOWN = 180;
-
-let lastBGChange = 0;
-
-
-// ----------------------------------------------------
-// SCREEN WALL
+// WALL SETTINGS
 // ----------------------------------------------------
 
 const WALL_THICKNESS = 140;
@@ -261,23 +239,19 @@ function setup() {
   createWalls();
 
 
-  // Detect disc → edge collisions
-
+  // Detect wall collisions
   setupEdgeCollisions();
 
 
-  // UI
-
+  // Create controls
   createUI();
 
 
-  // Double tap hide/show UI
-
+  // Double tap hide / show UI
   setupUIToggle();
 
 
   // Initial example
-
   rebuildDiscs(
     "TS2A8"
   );
@@ -454,33 +428,20 @@ function createUI() {
     () => {
 
       // Clear input
-
       inputField.value("");
 
 
       // Remove all circles
-
       clearDiscs();
 
 
       // Stop gravity
-
-      world.gravity.x =
-        0;
-
-      world.gravity.y =
-        0;
+      world.gravity.x = 0;
+      world.gravity.y = 0;
 
 
-      // Reset background to first colour
-
-      bgColorIndex =
-        0;
-
-      currentBGColor =
-        BG_COLORS[
-          bgColorIndex
-        ];
+      // Return BG to RED
+      currentBGColor = BG_RED;
 
     }
   );
@@ -507,7 +468,7 @@ function createUI() {
 
 
   // --------------------------------------------------
-  // EVERYTHING THAT HIDES
+  // ELEMENTS THAT HIDE
   // --------------------------------------------------
 
   uiElements = [
@@ -588,7 +549,7 @@ function installUIStyles() {
 
 
     /* =========================================
-       BUTTON
+       BUTTONS
     ========================================= */
 
     .ui-button {
@@ -649,7 +610,7 @@ function installUIStyles() {
     /* =========================================
        INPUT
        
-       RED RECTANGLE + BLACK OUTLINE
+       RED BOX + BLACK OUTLINE
     ========================================= */
 
     .ui-input {
@@ -664,7 +625,7 @@ function installUIStyles() {
         7px 11px;
 
       background:
-        ${LETTER_COLOR};
+        ${BG_RED};
 
       color:
         #000000;
@@ -799,32 +760,23 @@ function installUIStyles() {
 
 function setupUIToggle() {
 
-  let lastTapTime =
-    0;
+  let lastTapTime = 0;
 
+  let lastTapX = 0;
 
-  let lastTapX =
-    0;
-
-
-  let lastTapY =
-    0;
+  let lastTapY = 0;
 
 
   // --------------------------------------------------
   // DOUBLE TAP SETTINGS
   //
-  // Increase TIME if you want slower taps accepted
-  //
-  // Increase DISTANCE if taps can be further apart
+  // Increase TIME if you want slower taps accepted.
+  // Increase DISTANCE if taps can be further apart.
   // --------------------------------------------------
 
-  const DOUBLE_TAP_TIME =
-    450;
+  const DOUBLE_TAP_TIME = 450;
 
-
-  const DOUBLE_TAP_DISTANCE =
-    80;
+  const DOUBLE_TAP_DISTANCE = 80;
 
 
   canvas.elt.addEventListener(
@@ -866,7 +818,7 @@ function setupUIToggle() {
 
 
       // ------------------------------------------------
-      // DOUBLE TAP
+      // DOUBLE TAP DETECTED
       // ------------------------------------------------
 
       if (
@@ -891,8 +843,8 @@ function setupUIToggle() {
         toggleUI();
 
 
-        lastTapTime =
-          0;
+        // reset gesture
+        lastTapTime = 0;
 
 
         return;
@@ -956,7 +908,7 @@ function toggleUI() {
 
 
 // ====================================================
-// BUILD DISCS
+// CREATE / REBUILD DISCS
 // ====================================================
 
 function rebuildDiscs(rawText) {
@@ -970,7 +922,7 @@ function rebuildDiscs(rawText) {
     );
 
 
-  // Empty text = empty sketch
+  // Empty input = empty sketch
 
   if (
     chars.length === 0
@@ -1094,15 +1046,13 @@ function rebuildDiscs(rawText) {
 
         {
 
-          // IMPORTANT:
-          // Used to detect edge collisions
-
+          // Used for wall collision detection
           label:
             "disc",
 
 
           // --------------------------------------
-          // BOUNCINESS
+          // BOUNCE
           // --------------------------------------
 
           restitution:
@@ -1179,14 +1129,13 @@ function clearDiscs() {
   }
 
 
-  discs =
-    [];
+  discs = [];
 
 }
 
 
 // ====================================================
-// TEXT
+// TEXT CLEANUP
 // ====================================================
 
 function sanitizeText(value) {
@@ -1216,7 +1165,7 @@ function sanitizeText(value) {
 
 
 // ====================================================
-// DISC SIZE
+// RESPONSIVE CIRCLE SIZE
 // ====================================================
 
 function getDiscRadius(count) {
@@ -1393,8 +1342,7 @@ function drawDiscs() {
       );
 
 
-      // IMPORTANT:
-      // Letter stays RED even if background changes
+      // Letter always stays red
 
       fill(
         LETTER_COLOR
@@ -1444,7 +1392,7 @@ function drawDiscs() {
 
 
 // ====================================================
-// WALLS
+// CREATE WALLS
 // ====================================================
 
 function createWalls() {
@@ -1481,7 +1429,9 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // TOP
+  // TOP WALL
+  //
+  // NO colour change
   // --------------------------------------------------
 
   walls.push(
@@ -1513,7 +1463,7 @@ function createWalls() {
       {
 
         label:
-          "wall",
+          "wall-top",
 
         isStatic:
           true,
@@ -1532,7 +1482,9 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // BOTTOM
+  // BOTTOM WALL
+  //
+  // NO colour change
   // --------------------------------------------------
 
   walls.push(
@@ -1564,7 +1516,7 @@ function createWalls() {
       {
 
         label:
-          "wall",
+          "wall-bottom",
 
         isStatic:
           true,
@@ -1583,7 +1535,9 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // LEFT
+  // LEFT WALL
+  //
+  // LEFT = WHITE BG
   // --------------------------------------------------
 
   walls.push(
@@ -1615,7 +1569,7 @@ function createWalls() {
       {
 
         label:
-          "wall",
+          "wall-left",
 
         isStatic:
           true,
@@ -1634,7 +1588,9 @@ function createWalls() {
 
 
   // --------------------------------------------------
-  // RIGHT
+  // RIGHT WALL
+  //
+  // RIGHT = RED BG
   // --------------------------------------------------
 
   walls.push(
@@ -1666,7 +1622,7 @@ function createWalls() {
       {
 
         label:
-          "wall",
+          "wall-right",
 
         isStatic:
           true,
@@ -1710,8 +1666,7 @@ function clearWalls() {
   }
 
 
-  walls =
-    [];
+  walls = [];
 
 }
 
@@ -1737,7 +1692,12 @@ function getSafeBounds() {
 
 
 // ====================================================
-// EDGE COLLISION → BACKGROUND CHANGE
+// WALL COLLISION → BG CHANGE
+//
+// LEFT  = WHITE
+// RIGHT = RED
+//
+// TOP + BOTTOM = NOTHING
 // ====================================================
 
 function setupEdgeCollisions() {
@@ -1749,32 +1709,6 @@ function setupEdgeCollisions() {
     "collisionStart",
 
     function(event) {
-
-      let now =
-        millis();
-
-
-      // ------------------------------------------------
-      // Don't cycle super quickly when many discs
-      // hit an edge together
-      // ------------------------------------------------
-
-      if (
-
-        now
-        -
-        lastBGChange
-
-        <
-
-        BG_CHANGE_COOLDOWN
-
-      ) {
-
-        return;
-
-      }
-
 
       for (
         let pair of event.pairs
@@ -1788,74 +1722,97 @@ function setupEdgeCollisions() {
           pair.bodyB;
 
 
-        let hitEdge =
+        let wall =
+          null;
 
-          (
-            a.label === "disc"
-            &&
-            b.label === "wall"
+
+        // ------------------------------------------
+        // Disc hits wall
+        // ------------------------------------------
+
+        if (
+
+          a.label === "disc"
+
+          &&
+
+          b.label.startsWith(
+            "wall-"
           )
 
-          ||
+        ) {
 
-          (
-            a.label === "wall"
-            &&
-            b.label === "disc"
-          );
+          wall =
+            b;
+
+        }
+
+
+        else if (
+
+          b.label === "disc"
+
+          &&
+
+          a.label.startsWith(
+            "wall-"
+          )
+
+        ) {
+
+          wall =
+            a;
+
+        }
 
 
         if (
-          hitEdge
+          !wall
         ) {
 
-          changeBackgroundColor();
-
-
-          lastBGChange =
-            now;
-
-
-          break;
+          continue;
 
         }
+
+
+        // ------------------------------------------
+        // LEFT WALL → WHITE
+        // ------------------------------------------
+
+        if (
+          wall.label ===
+          "wall-left"
+        ) {
+
+          currentBGColor =
+            BG_WHITE;
+
+        }
+
+
+        // ------------------------------------------
+        // RIGHT WALL → RED
+        // ------------------------------------------
+
+        else if (
+          wall.label ===
+          "wall-right"
+        ) {
+
+          currentBGColor =
+            BG_RED;
+
+        }
+
+
+        // TOP + BOTTOM:
+        // intentionally no colour change
 
       }
 
     }
 
   );
-
-}
-
-
-// ====================================================
-// CHANGE BACKGROUND
-// ====================================================
-
-function changeBackgroundColor() {
-
-  bgColorIndex++;
-
-
-  if (
-
-    bgColorIndex
-    >=
-    BG_COLORS.length
-
-  ) {
-
-    bgColorIndex =
-      0;
-
-  }
-
-
-  currentBGColor =
-    BG_COLORS[
-      bgColorIndex
-    ];
 
 }
 
@@ -1998,6 +1955,10 @@ function updateGravity() {
   }
 
 
+  // --------------------------------------------------
+  // SMOOTH GRAVITY
+  // --------------------------------------------------
+
   world.gravity.x =
     lerp(
 
@@ -2025,7 +1986,7 @@ function updateGravity() {
 
 
 // ====================================================
-// ORIENTATION
+// DEVICE ORIENTATION
 // ====================================================
 
 function handleOrientation(event) {
@@ -2060,7 +2021,7 @@ function handleOrientation(event) {
 
 
 // ====================================================
-// CALIBRATE
+// CALIBRATION
 // ====================================================
 
 function calibrateMotion() {
@@ -2116,7 +2077,7 @@ function calibrateMotion() {
 
 
 // ====================================================
-// PHONE MOTION
+// PHONE MOTION TOGGLE
 // ====================================================
 
 async function toggleMotion() {
@@ -2270,7 +2231,7 @@ async function toggleMotion() {
 
 
 // ====================================================
-// FREEZE
+// FREEZE DISCS
 // ====================================================
 
 function freezeDiscs() {
@@ -2285,11 +2246,9 @@ function freezeDiscs() {
 
       {
 
-        x:
-          0,
+        x: 0,
 
-        y:
-          0
+        y: 0
 
       }
 
@@ -2310,7 +2269,7 @@ function freezeDiscs() {
 
 
 // ====================================================
-// TOUCH DEVICE
+// TOUCH DEVICE CHECK
 // ====================================================
 
 function isTouchDevice() {
