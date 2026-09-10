@@ -276,7 +276,7 @@ function createUI() {
 
   updateButton.position(
     25,
-    156
+    158
   );
 
   updateButton.mousePressed(
@@ -293,7 +293,9 @@ function createUI() {
     "ui-button"
   );
 
-
+updateButton.addClass(
+    "ui-action-button"
+  );
   // Reset
   // –––––––––––––––––––––––––––––––––––––––––––––––––––––
 
@@ -304,7 +306,7 @@ function createUI() {
 
   resetButton.position(
     132,
-    156
+    158
   );
 
   resetButton.mousePressed(
@@ -566,6 +568,11 @@ function installUIStyles() {
 
       }
 
+      .ui-action-button {
+      
+         width: 99px;
+
+      }
 
       .ui-input {
 
