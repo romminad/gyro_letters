@@ -461,7 +461,7 @@ function installUIStyles() {
     }
 
     .ui-action-button {
-      width: 90px;
+      width: 85px;
   }
 
     .ui-button:active {
