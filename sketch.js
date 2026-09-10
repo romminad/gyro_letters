@@ -64,7 +64,7 @@ const SAFE_BOUNDS_MOBILE = {
   left: 0,
   right: 0,
   top: 0,
-  bottom: 5
+  bottom: 0
 };
 
 const SAFE_BOUNDS_DESKTOP = {
@@ -195,6 +195,7 @@ function createUI() {
 
   installUIStyles();
   const safeTop = getSafeTop();
+  const UI_OFFSET_Y = -20;
 
   // Phone motion
   // –––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -206,7 +207,7 @@ function createUI() {
 
   motionButton.position(
     25,
-    24 + safeTop
+    24 + safeTop + UI_OFFSET_Y
   );
 
   motionButton.mousePressed(
@@ -228,7 +229,7 @@ function createUI() {
 
   calibrateButton.position(
     25,
-    68 + safeTop
+    68 + safeTop + UI_OFFSET_Y
   );
 
   calibrateButton.mousePressed(
@@ -248,7 +249,7 @@ function createUI() {
 
   inputField.position(
     25,
-    112 + safeTop
+    112 + safeTop + UI_OFFSET_Y
   );
 
   inputField.attribute(
@@ -276,7 +277,7 @@ function createUI() {
 
   updateButton.position(
     25,
-    158 + safeTop
+    158 + safeTop + UI_OFFSET_Y
   );
 
   updateButton.mousePressed(
@@ -310,7 +311,7 @@ updateButton.addClass(
 
   resetButton.position(
     132,
-    158 + safeTop
+    158 + safeTop + UI_OFFSET_Y
   );
 
   resetButton.mousePressed(
@@ -348,7 +349,7 @@ updateButton.addClass(
   );
   uiHint.position(
   25,
-  202 + safeTop
+  198 + safeTop + UI_OFFSET_Y
 );
 
   // Ui elements
