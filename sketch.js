@@ -19,7 +19,7 @@ const BG_COLOR = "#ff1a0d";
 
 // Circle colours
 const DISC_BLACK = "#000000";
-const DISC_WHITE = "#a39398";
+const DISC_WHITE = "#a4a4a4";
 
 // fill color for letters
 const LETTER_COLOR = "#ff1a0d";
@@ -413,7 +413,7 @@ function installUIStyles() {
     }
 
 
-    /* –––––––––––––––––––––––––––––––––––––––––––––––––––––
+    /* 
        Button
     –––––––––––––––––––––––––––––––––––––––––––––––––––––*/
 
@@ -461,7 +461,7 @@ function installUIStyles() {
     }
 
     .ui-action-button {
-      width: 85px;
+      width: 90px;
   }
 
     .ui-button:active {
@@ -475,9 +475,7 @@ function installUIStyles() {
     }
 
 
-    /* –––––––––––––––––––––––––––––––––––––––––––––––––––––
-       INPUT
-       RED BOX + BLACK OUTLINE
+    /* Input (red box + black outline)
     ––––––––––––––––––––––––––––––––––––––––––––––––––––– */
 
     .ui-input {
@@ -581,7 +579,7 @@ function installUIStyles() {
 
       .ui-action-button {
 
-         width: 99px;
+         width: 90px;
 
       }
 
