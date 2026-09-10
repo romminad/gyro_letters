@@ -206,7 +206,7 @@ function createUI() {
 
   motionButton.position(
     25,
-    24
+    24 + getSafeTop()
   );
 
   motionButton.mousePressed(
@@ -228,7 +228,7 @@ function createUI() {
 
   calibrateButton.position(
     25,
-    68
+    68 + safeTop
   );
 
   calibrateButton.mousePressed(
@@ -248,7 +248,7 @@ function createUI() {
 
   inputField.position(
     25,
-    112
+    112 + safeTop
   );
 
   inputField.attribute(
@@ -276,7 +276,7 @@ function createUI() {
 
   updateButton.position(
     25,
-    158
+    158 + safeTop
   );
 
   updateButton.mousePressed(
@@ -310,7 +310,7 @@ updateButton.addClass(
 
   resetButton.position(
     132,
-    158
+    158 + safeTop
   );
 
   resetButton.mousePressed(
@@ -346,7 +346,10 @@ updateButton.addClass(
   uiHint.addClass(
     "ui-hint"
   );
-
+  uiHint.position(
+  25,
+  202 + safeTop
+);
 
   // Ui elements
   // –––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -394,7 +397,9 @@ function installUIStyles() {
         normal;
 
     }
-
+:root {
+  --safe-top: env(safe-area-inset-top);
+}
 
     .ui-button,
     .ui-input,
@@ -543,9 +548,6 @@ function installUIStyles() {
 
       left:
         25px;
-
-      top:
-        202px;
 
       color:
         #000000;
@@ -2083,4 +2085,11 @@ function windowResized() {
 
   createWalls();
 
+}
+
+function getSafeTop() {
+  let value = getComputedStyle(document.documentElement)
+    .getPropertyValue("--safe-top");
+
+  return parseFloat(value) || 0;
 }
