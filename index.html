@@ -1,43 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+
+<html>
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
-  <title>Gyro Letter Discs</title>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport"
+        content="width=device-width,
+                 initial-scale=1.0,
+                 viewport-fit=cover,
+                 user-scalable=no">
+
+  <meta name="apple-mobile-web-app-capable"
+        content="yes">
+
+  <meta name="apple-mobile-web-app-status-bar-style"
+        content="black-translucent">
+
+  <meta name="apple-mobile-web-app-title"
+        content="GYRO">
 
   <style>
-    html, body {
+
+    html,
+    body {
       margin: 0;
       padding: 0;
       overflow: hidden;
+      width: 100%;
+      height: 100%;
       background: #ff1a0d;
-      font-family: Arial, sans-serif;
+      overscroll-behavior: none;
     }
 
     canvas {
       display: block;
     }
 
-    input, button {
-      font-size: 14px;
-      border-radius: 999px;
-      border: none;
-      padding: 10px 14px;
-      outline: none;
-    }
-
-    input {
-      width: 150px;
-    }
-
-    button {
-      cursor: pointer;
-    }
   </style>
+
 </head>
+
 <body>
+
   <script src="https://cdn.jsdelivr.net/npm/p5@1.11.8/lib/p5.min.js"></script>
+
   <script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"></script>
+
   <script src="sketch.js"></script>
+
 </body>
+
 </html>
