@@ -592,7 +592,7 @@ function installUIStyles() {
         right: auto; 
 
         font-size:
-          13px;
+          17px;
 
       }
 
