@@ -19,7 +19,7 @@ const BG_COLOR = "#ff1a0d";
 
 // Circle colours
 const DISC_BLACK = "#000000";
-const DISC_WHITE = "#ffffff";
+const DISC_WHITE = "#a39398";
 
 // fill color for letters
 const LETTER_COLOR = "#ff1a0d";
@@ -165,7 +165,7 @@ function setup() {
 
   setupUIToggle();
 
-  rebuildDiscs("TS2A8");
+  rebuildDiscs("GYR05");
 
 }
 
@@ -293,6 +293,10 @@ function createUI() {
     "ui-button"
   );
 
+  updateButton.addClass(
+    "ui-action-button"
+  );
+
 updateButton.addClass(
     "ui-action-button"
   );
@@ -324,6 +328,10 @@ updateButton.addClass(
 
   resetButton.addClass(
     "ui-button"
+  );
+
+  resetButton.addClass(
+    "ui-action-button"
   );
 
 
@@ -452,6 +460,9 @@ function installUIStyles() {
 
     }
 
+    .ui-action-button {
+      width: 90px;
+  }
 
     .ui-button:active {
 
@@ -569,7 +580,7 @@ function installUIStyles() {
       }
 
       .ui-action-button {
-      
+
          width: 99px;
 
       }
