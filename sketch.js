@@ -530,11 +530,11 @@ function installUIStyles() {
       position:
         fixed;
 
-      right:
-        18px;
+      left:
+        25px;
 
       top:
-        24px;
+        202px;
 
       color:
         #000000;
@@ -583,11 +583,13 @@ function installUIStyles() {
 
       .ui-hint {
 
-        right:
-          12px;
+        left:
+          25px;
 
         top:
-          20px;
+          202px;
+
+        right: auto; 
 
         font-size:
           11px;
