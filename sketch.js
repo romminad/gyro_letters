@@ -194,7 +194,7 @@ function draw() {
 function createUI() {
 
   installUIStyles();
-
+  const safeTop = getSafeTop();
 
   // Phone motion
   // –––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -206,7 +206,7 @@ function createUI() {
 
   motionButton.position(
     25,
-    24 + getSafeTop()
+    24 + safeTop
   );
 
   motionButton.mousePressed(
@@ -397,9 +397,7 @@ function installUIStyles() {
         normal;
 
     }
-:root {
-  --safe-top: env(safe-area-inset-top);
-}
+
 
     .ui-button,
     .ui-input,
@@ -2088,8 +2086,31 @@ function windowResized() {
 }
 
 function getSafeTop() {
-  let value = getComputedStyle(document.documentElement)
-    .getPropertyValue("--safe-top");
 
-  return parseFloat(value) || 0;
+  const probe =
+    document.createElement("div");
+
+  probe.style.position = "fixed";
+  probe.style.top = "0";
+  probe.style.left = "0";
+
+  probe.style.paddingTop =
+    "env(safe-area-inset-top)";
+
+  probe.style.visibility =
+    "hidden";
+
+  probe.style.pointerEvents =
+    "none";
+
+  document.body.appendChild(probe);
+
+  const safeTop =
+    parseFloat(
+      getComputedStyle(probe).paddingTop
+    ) || 0;
+
+  probe.remove();
+
+  return safeTop;
 }
