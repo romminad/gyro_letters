@@ -124,8 +124,8 @@ function preload() {
 function setup() {
 
   canvas = createCanvas(
-    windowWidth,
-    windowHeight
+    window.innerWidth,
+  getFullViewportHeight()
   );
 
   pixelDensity(1);
@@ -2077,10 +2077,9 @@ function isTouchDevice() {
 function windowResized() {
 
   resizeCanvas(
-    windowWidth,
-    windowHeight
+    window.innerWidth,
+    getFullViewportHeight()
   );
-
 
   createWalls();
 
@@ -2114,4 +2113,20 @@ function getSafeTop() {
   probe.remove();
 
   return safeTop;
+}
+
+function getFullViewportHeight() {
+
+  // Home Screen / standalone iPhone app
+  if (
+    window.navigator.standalone ||
+    window.matchMedia("(display-mode: standalone)").matches
+  ) {
+    return Math.max(
+      window.innerHeight,
+      screen.height
+    );
+  }
+
+  return window.innerHeight;
 }
